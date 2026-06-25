@@ -1,0 +1,187 @@
+[gd_scene load_steps=8 format=3 uid="uid://cmain001"]
+
+[ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://bplayer001" path="res://player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://enemy001" path="res://entities/enemy/enemy.tscn" id="3_enemy"]
+[ext_resource type="PackedScene" uid="uid://bossgun001" path="res://entities/boss_gun/boss_gun.tscn" id="4_boss"]
+[ext_resource type="Script" path="res://scenes/hud.gd" id="5_hud"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
+size = Vector2(2400, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_platform"]
+size = Vector2(180, 24)
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 2400.0
+offset_bottom = 900.0
+color = Color(0.12, 0.14, 0.2, 1)
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(1200, 860)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("RectangleShape2D_ground")
+
+[node name="Visual" type="ColorRect" parent="Ground"]
+offset_left = -1200.0
+offset_top = -40.0
+offset_right = 1200.0
+offset_bottom = 40.0
+color = Color(0.35, 0.55, 0.3, 1)
+
+[node name="Platform" type="StaticBody2D" parent="."]
+position = Vector2(420, 754)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform"]
+shape = SubResource("RectangleShape2D_platform")
+
+[node name="Visual" type="ColorRect" parent="Platform"]
+offset_left = -90.0
+offset_top = -12.0
+offset_right = 90.0
+offset_bottom = 12.0
+color = Color(0.45, 0.35, 0.25, 1)
+
+[node name="Platform2" type="StaticBody2D" parent="."]
+position = Vector2(640, 688)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform2"]
+shape = SubResource("RectangleShape2D_platform")
+
+[node name="Visual" type="ColorRect" parent="Platform2"]
+offset_left = -90.0
+offset_top = -12.0
+offset_right = 90.0
+offset_bottom = 12.0
+color = Color(0.45, 0.35, 0.25, 1)
+
+[node name="Platform3" type="StaticBody2D" parent="."]
+position = Vector2(860, 622)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform3"]
+shape = SubResource("RectangleShape2D_platform")
+
+[node name="Visual" type="ColorRect" parent="Platform3"]
+offset_left = -90.0
+offset_top = -12.0
+offset_right = 90.0
+offset_bottom = 12.0
+color = Color(0.45, 0.35, 0.25, 1)
+
+[node name="Platform4" type="StaticBody2D" parent="."]
+position = Vector2(1080, 556)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform4"]
+shape = SubResource("RectangleShape2D_platform")
+
+[node name="Visual" type="ColorRect" parent="Platform4"]
+offset_left = -90.0
+offset_top = -12.0
+offset_right = 90.0
+offset_bottom = 12.0
+color = Color(0.55, 0.45, 0.3, 1)
+
+[node name="Platform5" type="StaticBody2D" parent="."]
+position = Vector2(1500, 688)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform5"]
+shape = SubResource("RectangleShape2D_platform")
+
+[node name="Visual" type="ColorRect" parent="Platform5"]
+offset_left = -90.0
+offset_top = -12.0
+offset_right = 90.0
+offset_bottom = 12.0
+color = Color(0.45, 0.35, 0.25, 1)
+
+[node name="Platform6" type="StaticBody2D" parent="."]
+position = Vector2(1850, 622)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform6"]
+shape = SubResource("RectangleShape2D_platform")
+
+[node name="Visual" type="ColorRect" parent="Platform6"]
+offset_left = -90.0
+offset_top = -12.0
+offset_right = 90.0
+offset_bottom = 12.0
+color = Color(0.45, 0.35, 0.25, 1)
+
+[node name="Enemies" type="Node2D" parent="."]
+
+[node name="Enemy1" parent="Enemies" instance=ExtResource("3_enemy")]
+position = Vector2(320, 820)
+
+[node name="Enemy2" parent="Enemies" instance=ExtResource("3_enemy")]
+position = Vector2(520, 820)
+
+[node name="Enemy3" parent="Enemies" instance=ExtResource("3_enemy")]
+position = Vector2(480, 742)
+
+[node name="Enemy4" parent="Enemies" instance=ExtResource("3_enemy")]
+position = Vector2(900, 610)
+
+[node name="Enemy5" parent="Enemies" instance=ExtResource("3_enemy")]
+position = Vector2(1100, 820)
+
+[node name="Enemy6" parent="Enemies" instance=ExtResource("3_enemy")]
+position = Vector2(1650, 676)
+
+[node name="BossGun" parent="." instance=ExtResource("4_boss")]
+position = Vector2(2400, 820)
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(200, 820)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("5_hud")
+
+[node name="MarginContainer" type="MarginContainer" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HUD/MarginContainer"]
+layout_mode = 2
+
+[node name="HealthLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "HP: 4/4"
+
+[node name="BossLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 20
+text = "Boss HP: 20/20"
+
+[node name="StatusLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 24
+text = "Game Over — press R to restart"
