@@ -30,7 +30,6 @@ var _invincibility_timer := 0.0
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var visual: ColorRect = $Visual
 @onready var direction_indicator: ColorRect = $DirectionIndicator
-@onready var camera: Camera2D = $Camera2D
 @onready var muzzle: Node2D = $Muzzle
 
 var _player_bullet_scene: PackedScene = preload("res://entities/player_bullet/player_bullet.tscn")
@@ -96,6 +95,7 @@ func _try_shoot() -> void:
 		return
 
 	_shoot_cooldown = SHOOT_COOLDOWN
+	AudioManager.play_player_shoot()
 	var bullet := _player_bullet_scene.instantiate()
 	get_tree().current_scene.add_child(bullet)
 	bullet.global_position = muzzle.global_position
@@ -133,7 +133,6 @@ func _apply_stance(height: float) -> void:
 	visual.offset_top = -height
 	visual.offset_right = HALF_WIDTH
 	visual.offset_bottom = 0.0
-	camera.position.y = -half_height
 	_update_direction_indicator()
 
 

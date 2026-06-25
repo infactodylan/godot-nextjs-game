@@ -29,9 +29,5 @@ offset_right = 26.0
 offset_bottom = -20.0
 color = Color(0, 0, 0, 1)
 
-[node name="Camera2D" type="Camera2D" parent="."]
-position = Vector2(0, -24)
-zoom = Vector2(1.5, 1.5)
-
 [node name="Muzzle" type="Node2D" parent="."]
 position = Vector2(20, -24)

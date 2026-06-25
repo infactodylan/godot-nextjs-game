@@ -39,4 +39,5 @@ func _check_player_collision() -> void:
 
 
 func die() -> void:
+	AudioManager.play_enemy_death()
 	queue_free()

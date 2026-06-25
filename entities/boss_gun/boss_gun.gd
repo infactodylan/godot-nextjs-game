@@ -35,6 +35,7 @@ func _process(delta: float) -> void:
 
 
 func _fire() -> void:
+	AudioManager.play_boss_shoot()
 	var bullet_scene: PackedScene = preload("res://entities/enemy_bullet/enemy_bullet.tscn")
 	var bullet := bullet_scene.instantiate()
 	get_tree().current_scene.add_child(bullet)
