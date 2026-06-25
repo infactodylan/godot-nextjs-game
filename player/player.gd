@@ -1,6 +1,8 @@
 extends CharacterBody2D
 
 signal health_changed(current: int, maximum: int)
+signal ammo_changed(current: int, maximum: int)
+signal super_weapon_changed(active: bool, seconds_left: float)
 signal died
 
 const SPEED := 300.0
@@ -13,19 +15,29 @@ const CROUCH_HEIGHT := 28.0
 const HALF_WIDTH := 16.0
 const SQUISH_SPEED := 18.0
 const SHOOT_COOLDOWN := 0.25
+const SUPER_FIRE_COOLDOWN := 0.08
 const INVINCIBILITY_TIME := 0.5
 const MAX_HEALTH := 4
+const MAX_AMMO := 6
+const LOW_AMMO_THRESHOLD := 2
+const SUPER_WEAPON_DURATION := 10.0
+const SUPER_MAG_SIZE := 20
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var facing_direction := 1.0
 var health := MAX_HEALTH
+var ammo := MAX_AMMO
 var is_dead := false
+var super_weapon_active := false
+var super_weapon_time_left := 0.0
+var super_mag_ammo := SUPER_MAG_SIZE
 
 var _coyote_timer := 0.0
 var _jump_buffer_timer := 0.0
 var _current_height := STAND_HEIGHT
 var _shoot_cooldown := 0.0
 var _invincibility_timer := 0.0
+var _normal_visual_color := Color(0.25, 0.65, 1, 1)
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var visual: ColorRect = $Visual
@@ -37,7 +49,9 @@ var _player_bullet_scene: PackedScene = preload("res://entities/player_bullet/pl
 
 func _ready() -> void:
 	add_to_group("player")
+	_normal_visual_color = visual.color
 	health_changed.emit(health, MAX_HEALTH)
+	ammo_changed.emit(ammo, MAX_AMMO)
 	_update_direction_indicator()
 
 
@@ -48,6 +62,14 @@ func _physics_process(delta: float) -> void:
 	_shoot_cooldown = max(_shoot_cooldown - delta, 0.0)
 	_invincibility_timer = max(_invincibility_timer - delta, 0.0)
 	_update_invincibility_visual()
+
+	if super_weapon_active:
+		super_weapon_time_left -= delta
+		super_weapon_changed.emit(true, super_weapon_time_left)
+		if super_weapon_time_left <= 0.0:
+			_deactivate_super_weapon()
+		elif Input.is_action_pressed("shoot"):
+			_try_shoot_super()
 
 	var wants_crouch := Input.is_action_pressed("move_down")
 	var target_height := CROUCH_HEIGHT if wants_crouch else STAND_HEIGHT
@@ -84,22 +106,61 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_released("jump") and velocity.y < 0.0:
 		velocity.y *= JUMP_CUT_MULTIPLIER
 
-	if Input.is_action_just_pressed("shoot"):
+	if not super_weapon_active and Input.is_action_just_pressed("shoot"):
 		_try_shoot()
 
 	move_and_slide()
 
 
 func _try_shoot() -> void:
-	if _shoot_cooldown > 0.0:
+	if _shoot_cooldown > 0.0 or ammo <= 0:
 		return
 
 	_shoot_cooldown = SHOOT_COOLDOWN
+	ammo -= 1
+	ammo_changed.emit(ammo, MAX_AMMO)
+	_fire_bullet()
+
+
+func _try_shoot_super() -> void:
+	if _shoot_cooldown > 0.0:
+		return
+
+	if super_mag_ammo <= 0:
+		super_mag_ammo = SUPER_MAG_SIZE
+
+	super_mag_ammo -= 1
+	_shoot_cooldown = SUPER_FIRE_COOLDOWN
+	_fire_bullet()
+
+
+func _fire_bullet() -> void:
 	AudioManager.play_player_shoot()
 	var bullet := _player_bullet_scene.instantiate()
 	get_tree().current_scene.add_child(bullet)
 	bullet.global_position = muzzle.global_position
 	bullet.direction = facing_direction
+
+
+func add_ammo() -> void:
+	ammo = MAX_AMMO
+	ammo_changed.emit(ammo, MAX_AMMO)
+
+
+func activate_super_weapon() -> void:
+	super_weapon_active = true
+	super_weapon_time_left = SUPER_WEAPON_DURATION
+	super_mag_ammo = SUPER_MAG_SIZE
+	visual.color = Color(0.95, 0.55, 1.0, 1.0)
+	super_weapon_changed.emit(true, super_weapon_time_left)
+
+
+func _deactivate_super_weapon() -> void:
+	super_weapon_active = false
+	super_weapon_time_left = 0.0
+	super_mag_ammo = SUPER_MAG_SIZE
+	visual.color = _normal_visual_color
+	super_weapon_changed.emit(false, 0.0)
 
 
 func take_damage(amount: int) -> void:

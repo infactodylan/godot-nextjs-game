@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+signal defeated
+
 const SPEED := 120.0
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -40,4 +42,5 @@ func _check_player_collision() -> void:
 
 func die() -> void:
 	AudioManager.play_enemy_death()
+	defeated.emit()
 	queue_free()
