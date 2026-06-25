@@ -10,9 +10,9 @@ const JUMP_VELOCITY := -480.0
 const COYOTE_TIME := 0.12
 const JUMP_BUFFER_TIME := 0.12
 const JUMP_CUT_MULTIPLIER := 0.45
-const STAND_HEIGHT := 48.0
-const CROUCH_HEIGHT := 28.0
-const HALF_WIDTH := 16.0
+const STAND_HEIGHT := 56.0
+const CROUCH_HEIGHT := 34.0
+const HALF_WIDTH := 18.0
 const SQUISH_SPEED := 18.0
 const SHOOT_COOLDOWN := 0.25
 const SUPER_FIRE_COOLDOWN := 0.08
@@ -22,6 +22,8 @@ const MAX_AMMO := 6
 const LOW_AMMO_THRESHOLD := 2
 const SUPER_WEAPON_DURATION := 10.0
 const SUPER_MAG_SIZE := 20
+const SPRITE_SCALE := 0.32
+const SPRITE_FEET_Y := -28.0
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var facing_direction := 1.0
@@ -37,11 +39,12 @@ var _jump_buffer_timer := 0.0
 var _current_height := STAND_HEIGHT
 var _shoot_cooldown := 0.0
 var _invincibility_timer := 0.0
-var _normal_visual_color := Color(0.25, 0.65, 1, 1)
+var _was_on_floor := true
+var _crouch_anim_played := false
+var _normal_modulate := Color.WHITE
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
-@onready var visual: ColorRect = $Visual
-@onready var direction_indicator: ColorRect = $DirectionIndicator
+@onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite
 @onready var muzzle: Node2D = $Muzzle
 
 var _player_bullet_scene: PackedScene = preload("res://entities/player_bullet/player_bullet.tscn")
@@ -49,10 +52,15 @@ var _player_bullet_scene: PackedScene = preload("res://entities/player_bullet/pl
 
 func _ready() -> void:
 	add_to_group("player")
-	_normal_visual_color = visual.color
+	animated_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var frames := PlayerSpriteFrames.build()
+	if frames.get_animation_names().is_empty():
+		push_error("Player has no sprite animations.")
+	else:
+		animated_sprite.sprite_frames = frames
+		animated_sprite.play("idle")
 	health_changed.emit(health, MAX_HEALTH)
 	ammo_changed.emit(ammo, MAX_AMMO)
-	_update_direction_indicator()
 
 
 func _physics_process(delta: float) -> void:
@@ -94,9 +102,6 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, SPEED)
 
-	muzzle.position = Vector2(20.0 * facing_direction, -_current_height * 0.5)
-	_update_direction_indicator()
-
 	var is_crouching := _current_height < STAND_HEIGHT - 1.0
 	if _jump_buffer_timer > 0.0 and _coyote_timer > 0.0 and not is_crouching:
 		velocity.y = JUMP_VELOCITY
@@ -110,6 +115,54 @@ func _physics_process(delta: float) -> void:
 		_try_shoot()
 
 	move_and_slide()
+	_update_muzzle()
+	_update_animation(is_crouching, wants_crouch)
+
+	if is_on_floor() and not _was_on_floor:
+		animated_sprite.play("land")
+
+	_was_on_floor = is_on_floor()
+
+
+func _update_animation(is_crouching: bool, wants_crouch: bool) -> void:
+	animated_sprite.flip_h = facing_direction < 0.0
+
+	if animated_sprite.animation == "land" and animated_sprite.is_playing():
+		return
+
+	if not is_on_floor():
+		if velocity.y < -40.0:
+			if animated_sprite.animation != "jump":
+				animated_sprite.play("jump")
+		elif abs(velocity.x) > 40.0:
+			if animated_sprite.animation != "air_aim":
+				animated_sprite.play("air_aim")
+		elif animated_sprite.animation != "fall":
+			animated_sprite.play("fall")
+		return
+
+	if is_crouching:
+		if wants_crouch and not _crouch_anim_played and _current_height > CROUCH_HEIGHT + 2.0:
+			animated_sprite.play("crouch_enter")
+			_crouch_anim_played = true
+		elif animated_sprite.animation != "crouch_enter" or not animated_sprite.is_playing():
+			animated_sprite.play("crouch")
+		return
+
+	_crouch_anim_played = false
+
+	if abs(velocity.x) > 20.0:
+		if animated_sprite.animation != "run":
+			animated_sprite.play("run")
+	else:
+		if animated_sprite.animation != "idle":
+			animated_sprite.play("idle")
+
+
+func _update_muzzle() -> void:
+	var half_height := _current_height * 0.5
+	var barrel_x := 34.0 * facing_direction
+	muzzle.position = Vector2(barrel_x, -half_height - 2.0)
 
 
 func _try_shoot() -> void:
@@ -151,7 +204,7 @@ func activate_super_weapon() -> void:
 	super_weapon_active = true
 	super_weapon_time_left = SUPER_WEAPON_DURATION
 	super_mag_ammo = SUPER_MAG_SIZE
-	visual.color = Color(0.95, 0.55, 1.0, 1.0)
+	animated_sprite.modulate = Color(1.0, 0.85, 1.0, 1.0)
 	super_weapon_changed.emit(true, super_weapon_time_left)
 
 
@@ -159,7 +212,7 @@ func _deactivate_super_weapon() -> void:
 	super_weapon_active = false
 	super_weapon_time_left = 0.0
 	super_mag_ammo = SUPER_MAG_SIZE
-	visual.color = _normal_visual_color
+	animated_sprite.modulate = _normal_modulate
 	super_weapon_changed.emit(false, 0.0)
 
 
@@ -182,6 +235,7 @@ func die() -> void:
 	is_dead = true
 	velocity = Vector2.ZERO
 	set_physics_process(false)
+	animated_sprite.pause()
 	died.emit()
 
 
@@ -190,33 +244,11 @@ func _apply_stance(height: float) -> void:
 	var rect_shape := collision_shape.shape as RectangleShape2D
 	rect_shape.size = Vector2(HALF_WIDTH * 2.0, height)
 	collision_shape.position = Vector2(0.0, -half_height)
-	visual.offset_left = -HALF_WIDTH
-	visual.offset_top = -height
-	visual.offset_right = HALF_WIDTH
-	visual.offset_bottom = 0.0
-	_update_direction_indicator()
-
-
-func _update_direction_indicator() -> void:
-	var half_height := _current_height * 0.5
-	var indicator_width := 10.0
-	var indicator_height := 8.0
-	var y_top := -half_height - indicator_height * 0.5
-	var y_bottom := y_top + indicator_height
-
-	if facing_direction > 0.0:
-		direction_indicator.offset_left = HALF_WIDTH
-		direction_indicator.offset_right = HALF_WIDTH + indicator_width
-	else:
-		direction_indicator.offset_left = -HALF_WIDTH - indicator_width
-		direction_indicator.offset_right = -HALF_WIDTH
-
-	direction_indicator.offset_top = y_top
-	direction_indicator.offset_bottom = y_bottom
+	animated_sprite.position.y = -half_height
 
 
 func _update_invincibility_visual() -> void:
+	var base_color := Color(1.0, 0.85, 1.0, 1.0) if super_weapon_active else _normal_modulate
 	if _invincibility_timer > 0.0:
-		visual.modulate.a = 0.5 if int(_invincibility_timer * 10.0) % 2 == 0 else 1.0
-	else:
-		visual.modulate.a = 1.0
+		base_color.a = 0.5 if int(_invincibility_timer * 10.0) % 2 == 0 else 1.0
+	animated_sprite.modulate = base_color
