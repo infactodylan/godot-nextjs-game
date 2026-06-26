@@ -7,6 +7,7 @@ signal died
 
 const SPEED := 300.0
 const JUMP_VELOCITY := -480.0
+const DOUBLE_JUMP_VELOCITY := -420.0
 const COYOTE_TIME := 0.12
 const JUMP_BUFFER_TIME := 0.12
 const JUMP_CUT_MULTIPLIER := 0.45
@@ -17,6 +18,7 @@ const SQUISH_SPEED := 18.0
 const SHOOT_COOLDOWN := 0.25
 const SUPER_FIRE_COOLDOWN := 0.08
 const INVINCIBILITY_TIME := 0.5
+const STUN_TIME := 0.3
 const MAX_HEALTH := 4
 const MAX_AMMO := 6
 const LOW_AMMO_THRESHOLD := 2
@@ -38,9 +40,11 @@ var super_mag_ammo := SUPER_MAG_SIZE
 
 var _coyote_timer := 0.0
 var _jump_buffer_timer := 0.0
+var _double_jump_available := false
 var _current_height := STAND_HEIGHT
 var _shoot_cooldown := 0.0
 var _invincibility_timer := 0.0
+var _stun_timer := 0.0
 var _normal_modulate := Color.WHITE
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -70,9 +74,12 @@ func _physics_process(delta: float) -> void:
 
 	_shoot_cooldown = max(_shoot_cooldown - delta, 0.0)
 	_invincibility_timer = max(_invincibility_timer - delta, 0.0)
+	_stun_timer = max(_stun_timer - delta, 0.0)
 	_update_invincibility_visual()
 
-	if super_weapon_active:
+	var is_stunned := _stun_timer > 0.0
+
+	if super_weapon_active and not is_stunned:
 		super_weapon_time_left -= delta
 		super_weapon_changed.emit(true, super_weapon_time_left)
 		if super_weapon_time_left <= 0.0:
@@ -80,42 +87,57 @@ func _physics_process(delta: float) -> void:
 		elif Input.is_action_pressed("shoot"):
 			_try_shoot_super()
 
-	var direction := Input.get_axis("move_left", "move_right")
-	if direction != 0.0:
-		facing_direction = direction
+	var direction := 0.0
+	var wants_crouch := false
+	var jump_just_pressed := false
 
-	var wants_crouch := Input.is_action_pressed("move_down")
+	if not is_stunned:
+		direction = Input.get_axis("move_left", "move_right")
+		if direction != 0.0:
+			facing_direction = direction
+		wants_crouch = Input.is_action_pressed("move_down")
+		jump_just_pressed = Input.is_action_just_pressed("jump")
+		if jump_just_pressed:
+			_jump_buffer_timer = JUMP_BUFFER_TIME
+		else:
+			_jump_buffer_timer = max(_jump_buffer_timer - delta, 0.0)
+	else:
+		_jump_buffer_timer = max(_jump_buffer_timer - delta, 0.0)
+		velocity.x = move_toward(velocity.x, 0.0, SPEED * 2.0)
+
 	var target_height := CROUCH_HEIGHT if wants_crouch else STAND_HEIGHT
 	_current_height = move_toward(_current_height, target_height, SQUISH_SPEED * delta * (STAND_HEIGHT - CROUCH_HEIGHT))
 	_apply_stance(_current_height)
 
 	if is_on_floor():
 		_coyote_timer = COYOTE_TIME
+		_double_jump_available = true
 	else:
 		_coyote_timer = max(_coyote_timer - delta, 0.0)
 		velocity.y += gravity * delta
 
-	if Input.is_action_just_pressed("jump"):
-		_jump_buffer_timer = JUMP_BUFFER_TIME
-	else:
-		_jump_buffer_timer = max(_jump_buffer_timer - delta, 0.0)
-
-	if direction != 0.0:
-		velocity.x = direction * SPEED
-	else:
-		velocity.x = move_toward(velocity.x, 0.0, SPEED)
+	if not is_stunned:
+		if direction != 0.0:
+			velocity.x = direction * SPEED
+		else:
+			velocity.x = move_toward(velocity.x, 0.0, SPEED)
 
 	var is_crouching := _current_height < STAND_HEIGHT - 1.0
-	if _jump_buffer_timer > 0.0 and _coyote_timer > 0.0 and not is_crouching:
-		velocity.y = JUMP_VELOCITY
-		_coyote_timer = 0.0
-		_jump_buffer_timer = 0.0
+	if not is_stunned:
+		if _jump_buffer_timer > 0.0 and _coyote_timer > 0.0 and not is_crouching:
+			velocity.y = JUMP_VELOCITY
+			_coyote_timer = 0.0
+			_jump_buffer_timer = 0.0
+		elif jump_just_pressed and not is_on_floor() and _double_jump_available and not is_crouching:
+			velocity.y = DOUBLE_JUMP_VELOCITY
+			_double_jump_available = false
+			_jump_buffer_timer = 0.0
 
-	if Input.is_action_just_released("jump") and velocity.y < 0.0:
-		velocity.y *= JUMP_CUT_MULTIPLIER
+		if Input.is_action_just_released("jump") and velocity.y < 0.0:
+			velocity.y *= JUMP_CUT_MULTIPLIER
 
-	if not super_weapon_active and Input.is_action_just_pressed("shoot"):
-		_try_shoot()
+		if not super_weapon_active and Input.is_action_just_pressed("shoot"):
+			_try_shoot()
 
 	move_and_slide()
 	_update_muzzle()
@@ -190,6 +212,16 @@ func add_ammo() -> void:
 	AudioManager.play_player_reload()
 
 
+func heal_to_full() -> void:
+	if is_dead:
+		return
+
+	health = MAX_HEALTH
+	_invincibility_timer = INVINCIBILITY_TIME
+	health_changed.emit(health, MAX_HEALTH)
+	AudioManager.play_player_reload()
+
+
 func activate_super_weapon() -> void:
 	super_weapon_active = true
 	super_weapon_time_left = SUPER_WEAPON_DURATION
@@ -206,12 +238,14 @@ func _deactivate_super_weapon() -> void:
 	super_weapon_changed.emit(false, 0.0)
 
 
-func take_damage(amount: int) -> void:
+func take_damage(amount: int, stun: bool = false) -> void:
 	if is_dead or _invincibility_timer > 0.0:
 		return
 
 	health = max(health - amount, 0)
 	_invincibility_timer = INVINCIBILITY_TIME
+	if stun:
+		_stun_timer = STUN_TIME
 	health_changed.emit(health, MAX_HEALTH)
 
 	if health <= 0:

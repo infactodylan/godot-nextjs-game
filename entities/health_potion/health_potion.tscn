@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3 uid="uid://healthpot001"]
+
+[ext_resource type="Script" path="res://entities/health_potion/health_potion.gd" id="1_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_potion"]
+size = Vector2(20, 28)
+
+[node name="HealthPotion" type="Area2D"]
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+script = ExtResource("1_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -14)
+shape = SubResource("RectangleShape2D_potion")
+
+[node name="Bottle" type="ColorRect" parent="."]
+offset_left = -10.0
+offset_top = -28.0
+offset_right = 10.0
+offset_bottom = 0.0
+color = Color(0.15, 0.75, 0.35, 1)
+
+[node name="Liquid" type="ColorRect" parent="."]
+offset_left = -7.0
+offset_top = -22.0
+offset_right = 7.0
+offset_bottom = -4.0
+color = Color(0.95, 0.2, 0.25, 1)
+
+[node name="Cork" type="ColorRect" parent="."]
+offset_left = -5.0
+offset_top = -32.0
+offset_right = 5.0
+offset_bottom = -26.0
+color = Color(0.55, 0.35, 0.2, 1)

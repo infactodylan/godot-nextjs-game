@@ -24,6 +24,11 @@ func _ready() -> void:
 	health_changed.emit(health, MAX_HEALTH)
 
 
+func activate() -> void:
+	_fire_timer = 0.0
+	set_process(true)
+
+
 func _process(delta: float) -> void:
 	if health <= 0:
 		return

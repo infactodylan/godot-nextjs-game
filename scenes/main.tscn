@@ -204,43 +204,7 @@ color = Color(0.5, 0.4, 0.28, 1)
 
 [node name="Wave1" type="Node2D" parent="Enemies" unique_id=1593966258]
 
-[node name="Enemy1" parent="Enemies/Wave1" unique_id=310162603 instance=ExtResource("3_enemy")]
-position = Vector2(320, 820)
-
-[node name="Enemy2" parent="Enemies/Wave1" unique_id=1981505948 instance=ExtResource("3_enemy")]
-position = Vector2(520, 820)
-
-[node name="Enemy3" parent="Enemies/Wave1" unique_id=1011354829 instance=ExtResource("3_enemy")]
-position = Vector2(480, 742)
-
-[node name="Enemy4" parent="Enemies/Wave1" unique_id=1266243326 instance=ExtResource("3_enemy")]
-position = Vector2(900, 610)
-
-[node name="Enemy5" parent="Enemies/Wave1" unique_id=529810569 instance=ExtResource("3_enemy")]
-position = Vector2(1100, 820)
-
-[node name="Enemy6" parent="Enemies/Wave1" unique_id=176014724 instance=ExtResource("3_enemy")]
-position = Vector2(1400, 820)
-
 [node name="Wave2" type="Node2D" parent="Enemies" unique_id=506112275]
-
-[node name="Enemy1" parent="Enemies/Wave2" unique_id=2116160616 instance=ExtResource("3_enemy")]
-position = Vector2(2300, 820)
-
-[node name="Enemy2" parent="Enemies/Wave2" unique_id=1874852724 instance=ExtResource("3_enemy")]
-position = Vector2(2550, 820)
-
-[node name="Enemy3" parent="Enemies/Wave2" unique_id=566790493 instance=ExtResource("3_enemy")]
-position = Vector2(2650, 742)
-
-[node name="Enemy4" parent="Enemies/Wave2" unique_id=383776801 instance=ExtResource("3_enemy")]
-position = Vector2(3050, 610)
-
-[node name="Enemy5" parent="Enemies/Wave2" unique_id=1416318124 instance=ExtResource("3_enemy")]
-position = Vector2(3250, 820)
-
-[node name="Enemy6" parent="Enemies/Wave2" unique_id=1949502492 instance=ExtResource("3_enemy")]
-position = Vector2(3350, 544)
 
 [node name="Pickups" type="Node2D" parent="." unique_id=1742652088]
 
@@ -283,6 +247,47 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("6_pickup_arrow")
 
+[node name="HealthArrow" type="Control" parent="HUD/PickupGuides"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_pickup_arrow")
+
+[node name="PauseOverlay" type="ColorRect" parent="HUD"]
+visible = false
+z_index = 50
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.45)
+
+[node name="PauseLabel" type="Label" parent="HUD/PauseOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -40.0
+offset_right = 200.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 64
+text = "PAUSED"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="PickupBanner" type="PanelContainer" parent="HUD" unique_id=573353587]
 visible = false
 anchors_preset = 10
@@ -318,6 +323,26 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 34
 text = "20s"
 
+[node name="HealthRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="HealthText" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.35, 0.95, 0.45, 1)
+theme_override_font_sizes/font_size = 34
+text = "HEALTH POTION — GET HEALING"
+horizontal_alignment = 1
+
+[node name="HealthTimer" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 34
+text = "20s"
+
 [node name="BoostRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox" unique_id=1524490877]
 visible = false
 layout_mode = 2
@@ -339,11 +364,13 @@ theme_override_font_sizes/font_size = 34
 text = "5s"
 
 [node name="CountdownCenter" type="CenterContainer" parent="HUD" unique_id=185703758]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="CountdownVBox" type="VBoxContainer" parent="HUD/CountdownCenter" unique_id=1291962135]
 layout_mode = 2
@@ -363,11 +390,13 @@ text = "5"
 horizontal_alignment = 1
 
 [node name="MarginContainer" type="MarginContainer" parent="HUD" unique_id=868172383]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
@@ -400,8 +429,85 @@ theme_override_colors/font_color = Color(1, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 28
 text = "Boss HP: 20/20"
 
+[node name="WaveLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.55, 1)
+theme_override_font_sizes/font_size = 28
+text = "Wave 1 — Enemies: 12/12"
+
 [node name="StatusLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer" unique_id=137448714]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
 theme_override_font_sizes/font_size = 34
 text = "Game Over — press R to restart"
+
+[node name="MenuOverlay" type="ColorRect" parent="HUD"]
+z_index = 300
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.05, 0.12, 0.82)
+
+[node name="MenuCenter" type="CenterContainer" parent="HUD/MenuOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MenuVBox" type="VBoxContainer" parent="HUD/MenuOverlay/MenuCenter"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="MenuTitle" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.35, 1)
+theme_override_font_sizes/font_size = 72
+text = "New Game Project"
+horizontal_alignment = 1
+
+[node name="MenuMessage" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 32
+text = "Better luck next time."
+horizontal_alignment = 1
+
+[node name="MenuButton" type="Button" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 32
+text = "Play"
+
+[node name="TopRightControls" type="HBoxContainer" parent="HUD"]
+z_index = 301
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 56.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="MuteButton" type="Button" parent="HUD/TopRightControls"]
+custom_minimum_size = Vector2(90, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Mute"
+
+[node name="PauseButton" type="Button" parent="HUD/TopRightControls"]
+custom_minimum_size = Vector2(90, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Pause"

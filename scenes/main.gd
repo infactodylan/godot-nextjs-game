@@ -1,12 +1,18 @@
 extends Node2D
 
-enum GamePhase { PRE_START, WAVE1, SUPER_WEAPON_GRACE, WAVE2, BOSS_FIGHT }
+enum GamePhase { MENU, PRE_START, WAVE1, SUPER_WEAPON_GRACE, WAVE2, BOSS_FIGHT }
 
 const ENEMY_SPAWN_DELAY := 5.0
-const SUPER_WEAPON_GRACE := 8.0
+const SUPER_WEAPON_GRACE := 105.0
+const WAVE1_ENEMY_COUNT := 12
+const WAVE2_ENEMY_COUNT := 18
 const AMMO_POT_DURATION := 20.0
+const HEALTH_POTION_DURATION := 20.0
 const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(3600.0, 900.0)
+const ENEMY_SPAWN_X := MAP_SIZE.x - 30.0
+const ENEMY_SPAWN_GROUND_Y := 820.0
+const ENEMY_SPAWN_INTERVAL := 0.45
 const PLATFORM_TOP_OFFSET := 12.0
 const CAMERA_ZOOM_MULTIPLIER := 3.3
 
@@ -20,41 +26,50 @@ const CAMERA_ZOOM_MULTIPLIER := 3.3
 @onready var super_weapon_platform: StaticBody2D = $Platforms/Platform5
 
 var _ammo_pot_scene: PackedScene = preload("res://entities/ammo_pot/ammo_pot.tscn")
+var _health_potion_scene: PackedScene = preload("res://entities/health_potion/health_potion.tscn")
 var _super_weapon_scene: PackedScene = preload("res://entities/super_weapon/super_weapon_pickup.tscn")
+var _enemy_scene: PackedScene = preload("res://entities/enemy/enemy.tscn")
 
 var _can_restart := false
-var _phase := GamePhase.PRE_START
-var _phase_timer := ENEMY_SPAWN_DELAY
+var _phase := GamePhase.MENU
 var _wave1_alive := 0
 var _wave2_alive := 0
 var _active_ammo_pot: Area2D
+var _active_health_potion: Area2D
 var _active_super_weapon: Area2D
 var _ammo_pot_timer := 0.0
+var _health_potion_timer := 0.0
+var _grace_leads_to_wave2 := true
+var _super_weapon_subtitle := "Get the super weapon!"
+var _phase_timer := ENEMY_SPAWN_DELAY
 
 
 func _ready() -> void:
 	_setup_window_size()
 	_setup_map_camera()
-	_prepare_wave(wave1)
-	_prepare_wave(wave2)
 	_disable_boss()
+	player.set_physics_process(false)
 	AudioManager.play_music()
 
 	hud.bind_player(player)
 	hud.bind_boss(boss_gun)
 	hud.bind_camera(map_camera)
-	hud.start_countdown("Enemies spawn in")
+	hud.play_pressed.connect(_on_play_pressed)
+	hud.restart_pressed.connect(_on_restart_pressed)
 	player.died.connect(_on_player_died)
 	player.ammo_changed.connect(_on_player_ammo_changed)
+	player.health_changed.connect(_on_player_health_changed)
 	boss_gun.defeated.connect(_on_boss_defeated)
 
 
 func _process(delta: float) -> void:
 	if _can_restart and Input.is_action_just_pressed("restart"):
-		get_tree().reload_current_scene()
+		_on_restart_pressed()
 		return
 
 	match _phase:
+		GamePhase.MENU:
+			pass
 		GamePhase.PRE_START:
 			_phase_timer -= delta
 			hud.update_countdown(_phase_timer)
@@ -62,7 +77,7 @@ func _process(delta: float) -> void:
 				_start_wave1()
 		GamePhase.SUPER_WEAPON_GRACE:
 			_phase_timer -= delta
-			hud.update_countdown(_phase_timer, "Wave 2 incoming!")
+			hud.update_countdown(_phase_timer, _super_weapon_subtitle)
 			hud.update_boost_timer(_phase_timer)
 			if _phase_timer <= 0.0:
 				_finish_super_weapon_grace()
@@ -74,6 +89,9 @@ func _process(delta: float) -> void:
 
 
 func _setup_window_size() -> void:
+	if OS.has_feature("web"):
+		return
+
 	var screen_index := DisplayServer.window_get_current_screen()
 	var screen_size := DisplayServer.screen_get_size(screen_index)
 	var target_width := int(screen_size.x * SCREEN_SIZE_RATIO)
@@ -115,32 +133,40 @@ func _update_camera_follow() -> void:
 	map_camera.position = Vector2(target_x, MAP_SIZE.y * 0.5)
 
 
-func _prepare_wave(wave_node: Node2D) -> void:
-	for enemy in wave_node.get_children():
-		enemy.visible = false
-		enemy.process_mode = Node.PROCESS_MODE_DISABLED
-		enemy.collision_layer = 0
-		enemy.defeated.connect(_on_enemy_defeated.bind(wave_node))
+func _spawn_wave(wave_node: Node2D, enemy_count: int, wave_number: int) -> void:
+	_clear_wave(wave_node)
+	hud.update_wave_status(wave_number, enemy_count, enemy_count)
+	for i in enemy_count:
+		if wave_number == 1 and _phase != GamePhase.WAVE1:
+			return
+		if wave_number == 2 and _phase != GamePhase.WAVE2:
+			return
+		_spawn_single_enemy(wave_node, i)
+		if i < enemy_count - 1:
+			await get_tree().create_timer(ENEMY_SPAWN_INTERVAL).timeout
 
 
-func _disable_boss() -> void:
-	boss_gun.set_process(false)
+func _clear_wave(wave_node: Node2D) -> void:
+	for child in wave_node.get_children():
+		wave_node.remove_child(child)
+		child.free()
 
 
-func _spawn_wave(wave_node: Node2D) -> int:
-	var count := 0
-	for enemy in wave_node.get_children():
-		enemy.visible = true
-		enemy.process_mode = Node.PROCESS_MODE_INHERIT
-		enemy.collision_layer = 4
-		count += 1
-	return count
+func _spawn_single_enemy(wave_node: Node2D, index: int) -> void:
+	var enemy := _enemy_scene.instantiate() as CharacterBody2D
+	wave_node.add_child(enemy)
+	enemy.global_position = Vector2(
+		ENEMY_SPAWN_X - (index % 3) * 24.0,
+		ENEMY_SPAWN_GROUND_Y
+	)
+	enemy.defeated.connect(_on_enemy_defeated.bind(wave_node))
 
 
 func _start_wave1() -> void:
 	_phase = GamePhase.WAVE1
 	hud.hide_countdown()
-	_wave1_alive = _spawn_wave(wave1)
+	_wave1_alive = WAVE1_ENEMY_COUNT
+	_spawn_wave(wave1, WAVE1_ENEMY_COUNT, 1)
 
 
 func _update_pickup_timers(delta: float) -> void:
@@ -150,10 +176,27 @@ func _update_pickup_timers(delta: float) -> void:
 		if _ammo_pot_timer <= 0.0:
 			_despawn_ammo_pot()
 
+	if _active_health_potion and is_instance_valid(_active_health_potion):
+		_health_potion_timer -= delta
+		hud.update_health_timer(_health_potion_timer)
+		if _health_potion_timer <= 0.0:
+			_despawn_health_potion()
 
-func _start_super_weapon_grace() -> void:
+
+func _disable_boss() -> void:
+	boss_gun.set_process(false)
+
+
+func _enable_boss() -> void:
+	boss_gun.activate()
+
+
+func _start_super_weapon_grace(leads_to_wave2: bool) -> void:
 	_phase = GamePhase.SUPER_WEAPON_GRACE
+	hud.hide_wave_status()
 	_phase_timer = SUPER_WEAPON_GRACE
+	_grace_leads_to_wave2 = leads_to_wave2
+	_super_weapon_subtitle = "Wave 2 incoming!" if leads_to_wave2 else "Boss incoming!"
 	hud.start_countdown("Get the super weapon!")
 	_spawn_super_weapon()
 
@@ -162,36 +205,67 @@ func _finish_super_weapon_grace() -> void:
 	_despawn_super_weapon()
 	hud.hide_boost_indicator()
 	hud.hide_countdown()
-	_start_wave2()
+	if _grace_leads_to_wave2:
+		_start_wave2()
+	else:
+		_start_boss_fight()
 
 
 func _start_wave2() -> void:
 	_phase = GamePhase.WAVE2
 	hud.show_wave_banner("Wave 2!")
 	get_tree().create_timer(1.5).timeout.connect(hud.hide_countdown)
-	_wave2_alive = _spawn_wave(wave2)
-	boss_gun.set_process(true)
+	_wave2_alive = WAVE2_ENEMY_COUNT
+	_spawn_wave(wave2, WAVE2_ENEMY_COUNT, 2)
 
 
 func _start_boss_fight() -> void:
 	_phase = GamePhase.BOSS_FIGHT
+	_enable_boss()
 
 
 func _on_enemy_defeated(wave_node: Node2D) -> void:
 	if wave_node == wave1:
 		_wave1_alive = max(_wave1_alive - 1, 0)
+		hud.update_wave_status(1, _wave1_alive, WAVE1_ENEMY_COUNT)
 		if _wave1_alive == 0 and _phase == GamePhase.WAVE1:
-			_start_super_weapon_grace()
+			_enable_boss()
+			_start_super_weapon_grace(true)
 	elif wave_node == wave2:
 		_wave2_alive = max(_wave2_alive - 1, 0)
+		hud.update_wave_status(2, _wave2_alive, WAVE2_ENEMY_COUNT)
 		if _wave2_alive == 0 and _phase == GamePhase.WAVE2:
 			hud.hide_countdown()
-			_start_boss_fight()
+			_start_super_weapon_grace(false)
 
 
 func _on_player_ammo_changed(current: int, _maximum: int) -> void:
 	if current <= 2:
 		_try_spawn_ammo_pot()
+
+
+func _on_player_health_changed(current: int, _maximum: int) -> void:
+	if current == 1:
+		_try_spawn_health_potion()
+
+
+func _try_spawn_health_potion() -> void:
+	if _active_health_potion and is_instance_valid(_active_health_potion):
+		return
+
+	var platforms := _get_available_platforms()
+	if platforms.is_empty():
+		return
+
+	var platform: Node2D = platforms.pick_random()
+	_despawn_health_potion()
+	var potion := _health_potion_scene.instantiate() as Area2D
+	pickups.add_child(potion)
+	potion.global_position = _platform_pickup_position(platform)
+	potion.collected.connect(_on_health_potion_collected)
+	_active_health_potion = potion
+	_health_potion_timer = HEALTH_POTION_DURATION
+	hud.show_health_indicator(potion, _health_potion_timer)
 
 
 func _try_spawn_ammo_pot() -> void:
@@ -231,6 +305,14 @@ func _despawn_ammo_pot() -> void:
 	hud.hide_reload_indicator()
 
 
+func _despawn_health_potion() -> void:
+	if _active_health_potion and is_instance_valid(_active_health_potion):
+		_active_health_potion.queue_free()
+	_active_health_potion = null
+	_health_potion_timer = 0.0
+	hud.hide_health_indicator()
+
+
 func _despawn_super_weapon() -> void:
 	if _active_super_weapon and is_instance_valid(_active_super_weapon):
 		_active_super_weapon.queue_free()
@@ -244,9 +326,17 @@ func _on_ammo_pot_collected() -> void:
 	hud.hide_reload_indicator()
 
 
+func _on_health_potion_collected() -> void:
+	_active_health_potion = null
+	_health_potion_timer = 0.0
+	hud.hide_health_indicator()
+
+
 func _on_super_weapon_collected() -> void:
 	_active_super_weapon = null
 	hud.hide_boost_indicator()
+	if _phase == GamePhase.SUPER_WEAPON_GRACE:
+		_finish_super_weapon_grace()
 
 
 func _get_available_platforms() -> Array[Node2D]:
@@ -254,6 +344,12 @@ func _get_available_platforms() -> Array[Node2D]:
 	for node in get_tree().get_nodes_in_group("platform"):
 		if _active_super_weapon and is_instance_valid(_active_super_weapon):
 			if node.global_position.distance_to(_active_super_weapon.global_position) < 40.0:
+				continue
+		if _active_health_potion and is_instance_valid(_active_health_potion):
+			if node.global_position.distance_to(_active_health_potion.global_position) < 40.0:
+				continue
+		if _active_ammo_pot and is_instance_valid(_active_ammo_pot):
+			if node.global_position.distance_to(_active_ammo_pot.global_position) < 40.0:
 				continue
 		platforms.append(node as Node2D)
 	return platforms
@@ -265,7 +361,21 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 func _on_player_died() -> void:
 	_can_restart = true
+	hud.show_game_over()
 
 
 func _on_boss_defeated() -> void:
 	_can_restart = true
+	hud.show_victory()
+
+
+func _on_play_pressed() -> void:
+	hud.hide_menu()
+	player.set_physics_process(true)
+	_phase = GamePhase.PRE_START
+	_phase_timer = ENEMY_SPAWN_DELAY
+	hud.start_countdown("Enemies spawn in")
+
+
+func _on_restart_pressed() -> void:
+	get_tree().reload_current_scene()

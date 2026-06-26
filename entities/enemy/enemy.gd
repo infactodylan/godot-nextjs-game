@@ -60,8 +60,8 @@ func _update_animation(direction: float) -> void:
 func _check_player_collision() -> void:
 	for i in get_slide_collision_count():
 		var collider := get_slide_collision(i).get_collider()
-		if collider and collider.is_in_group("player") and collider.has_method("die"):
-			collider.die()
+		if collider and collider.is_in_group("player") and collider.has_method("take_damage"):
+			collider.take_damage(1)
 
 
 func die() -> void:

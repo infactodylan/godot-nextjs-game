@@ -9,6 +9,7 @@ const PLAYER_RELOAD := preload("res://assets/audio/player_reload.mp3")
 var _music_player: AudioStreamPlayer
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _sfx_index := 0
+var _muted := false
 
 
 func _ready() -> void:
@@ -37,6 +38,20 @@ func play_music() -> void:
 
 func stop_music() -> void:
 	_music_player.stop()
+
+
+func set_muted(muted: bool) -> void:
+	_muted = muted
+	AudioServer.set_bus_mute(0, muted)
+
+
+func is_muted() -> bool:
+	return _muted
+
+
+func toggle_muted() -> bool:
+	set_muted(not _muted)
+	return _muted
 
 
 func play_player_shoot() -> void:
