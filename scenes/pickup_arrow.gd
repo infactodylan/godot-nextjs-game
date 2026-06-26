@@ -7,11 +7,15 @@ const HOVER_GAP := 18.0
 const HOVER_BOB_AMOUNT := 8.0
 const HOVER_BOB_SPEED := 4.0
 const OUTLINE_COLOR := Color(1.0, 1.0, 1.0, 0.95)
+const LABEL_FONT_SIZE := 18
+const LABEL_OUTLINE_SIZE := 4
 
 var target: Node2D
 var origin: Node2D
 var camera: Camera2D
 var arrow_color := Color(0.95, 0.1, 0.1, 1.0)
+var label_text := ""
+var timer_text := ""
 var _hover_time := 0.0
 
 
@@ -26,14 +30,21 @@ func activate(
 	p_target: Node2D,
 	p_camera: Camera2D,
 	color: Color = arrow_color,
-	p_origin: Node2D = null
+	p_origin: Node2D = null,
+	p_label: String = ""
 ) -> void:
 	target = p_target
 	camera = p_camera
 	origin = p_origin
 	arrow_color = color
+	label_text = p_label
 	visible = true
 	set_process(true)
+	queue_redraw()
+
+
+func set_timer_text(text: String) -> void:
+	timer_text = text
 	queue_redraw()
 
 
@@ -41,6 +52,8 @@ func deactivate() -> void:
 	target = null
 	origin = null
 	camera = null
+	label_text = ""
+	timer_text = ""
 	_hover_time = 0.0
 	visible = false
 	set_process(false)
@@ -83,6 +96,7 @@ func _draw() -> void:
 
 	_draw_arrow(arrow_pos, aim_dir.angle(), OUTLINE_COLOR, 1.18)
 	_draw_arrow(arrow_pos, aim_dir.angle(), arrow_color, 1.0)
+	_draw_label(arrow_pos, aim_dir, target_on_screen)
 
 
 func _get_origin_screen_position(viewport_size: Vector2) -> Vector2:
@@ -126,3 +140,43 @@ func _draw_arrow(pos: Vector2, angle: float, color: Color, scale: float = 1.0) -
 		pos + wing_b.rotated(angle),
 	])
 	draw_colored_polygon(points, color)
+
+
+func _draw_label(arrow_pos: Vector2, aim_dir: Vector2, target_on_screen: bool) -> void:
+	if label_text.is_empty():
+		return
+
+	var font := ThemeDB.fallback_font
+	var display_text := label_text
+	if not timer_text.is_empty():
+		display_text += " (%s)" % timer_text
+
+	var text_size := font.get_string_size(display_text, HORIZONTAL_ALIGNMENT_CENTER, -1, LABEL_FONT_SIZE)
+	var label_offset := Vector2(0.0, -ARROW_LENGTH * 0.5 - 10.0)
+	if not target_on_screen:
+		label_offset = -aim_dir * (ARROW_LENGTH * 0.5 + 14.0)
+	var label_pos := arrow_pos + label_offset - Vector2(text_size.x * 0.5, text_size.y)
+
+	for ox in range(-LABEL_OUTLINE_SIZE, LABEL_OUTLINE_SIZE + 1):
+		for oy in range(-LABEL_OUTLINE_SIZE, LABEL_OUTLINE_SIZE + 1):
+			if ox == 0 and oy == 0:
+				continue
+			draw_string(
+				font,
+				label_pos + Vector2(ox, oy),
+				display_text,
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				LABEL_FONT_SIZE,
+				OUTLINE_COLOR
+			)
+
+	draw_string(
+		font,
+		label_pos,
+		display_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		LABEL_FONT_SIZE,
+		arrow_color
+	)

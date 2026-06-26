@@ -7,6 +7,13 @@ const RELOAD_COLOR := Color(0.95, 0.12, 0.12, 1.0)
 const HEALTH_COLOR := Color(0.2, 0.95, 0.35, 1.0)
 const BOOST_COLOR := Color(0.82, 0.45, 1.0, 1.0)
 const RESUME_COUNTDOWN := 5.0
+const PICKUP_CALLOUT_DURATION := 1.0
+const RELOAD_ARROW_LABEL := "AMMO"
+const HEALTH_ARROW_LABEL := "HEALTH"
+const BOOST_ARROW_LABEL := "SUPER WEAPON"
+const RELOAD_CALLOUT_TEXT := "Reload available — get ammo!"
+const HEALTH_CALLOUT_TEXT := "Health potion — get healing!"
+const BOOST_CALLOUT_TEXT := "Super weapon boost — grab it now!"
 
 @onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
 @onready var ammo_label: Label = $MarginContainer/VBoxContainer/AmmoLabel
@@ -50,6 +57,8 @@ var _get_ready_left := 0.0
 var _get_ready_callback: Callable
 var _needs_resume_countdown: Callable
 var _restore_pre_start_countdown: Callable
+var _pickup_callout: Label
+var _callout_tween: Tween
 
 
 func _ready() -> void:
@@ -73,6 +82,7 @@ func _ready() -> void:
 	mute_button.pressed.connect(_on_mute_pressed)
 	menu_button.pressed.connect(_on_menu_button_pressed)
 	_disable_button_keyboard_focus()
+	_setup_pickup_callout()
 	show_start_screen()
 
 
@@ -125,73 +135,64 @@ func bind_boss(boss: Node2D) -> void:
 func show_reload_indicator(target: Node2D, duration: float) -> void:
 	_reload_target = target
 	_reload_time_left = duration
-	reload_banner_row.visible = true
-	reload_banner_label.text = "RELOAD AVAILABLE — GET AMMO"
-	_update_reload_timer_label()
-	_refresh_pickup_banner()
+	_hide_pickup_banner_rows()
+	_flash_pickup_callout(RELOAD_CALLOUT_TEXT, RELOAD_COLOR)
 	if _camera:
-		reload_arrow.activate(target, _camera, RELOAD_COLOR, _player)
+		reload_arrow.activate(target, _camera, RELOAD_COLOR, _player, RELOAD_ARROW_LABEL)
+		_update_reload_arrow_timer()
 
 
 func update_reload_timer(seconds_left: float) -> void:
 	_reload_time_left = seconds_left
-	_update_reload_timer_label()
+	_update_reload_arrow_timer()
 
 
 func hide_reload_indicator() -> void:
 	_reload_target = null
 	_reload_time_left = 0.0
-	reload_banner_row.visible = false
 	reload_arrow.deactivate()
-	_refresh_pickup_banner()
 
 
 func show_health_indicator(target: Node2D, duration: float) -> void:
 	_health_target = target
 	_health_time_left = duration
-	health_banner_row.visible = true
-	health_banner_label.text = "HEALTH POTION — GET HEALING"
-	_update_health_timer_label()
-	_refresh_pickup_banner()
+	_hide_pickup_banner_rows()
+	_flash_pickup_callout(HEALTH_CALLOUT_TEXT, HEALTH_COLOR)
 	if _camera:
-		health_arrow.activate(target, _camera, HEALTH_COLOR, _player)
+		health_arrow.activate(target, _camera, HEALTH_COLOR, _player, HEALTH_ARROW_LABEL)
+		_update_health_arrow_timer()
 
 
 func update_health_timer(seconds_left: float) -> void:
 	_health_time_left = seconds_left
-	_update_health_timer_label()
+	_update_health_arrow_timer()
 
 
 func hide_health_indicator() -> void:
 	_health_target = null
 	_health_time_left = 0.0
-	health_banner_row.visible = false
 	health_arrow.deactivate()
-	_refresh_pickup_banner()
 
 
 func show_boost_indicator(target: Node2D, duration: float) -> void:
 	_boost_target = target
 	_boost_time_left = duration
-	boost_banner_row.visible = true
-	boost_banner_label.text = "SUPER WEAPON BOOST — GRAB IT NOW"
-	_update_boost_timer_label()
-	_refresh_pickup_banner()
+	_hide_pickup_banner_rows()
+	_flash_pickup_callout(BOOST_CALLOUT_TEXT, BOOST_COLOR)
 	if _camera:
-		boost_arrow.activate(target, _camera, BOOST_COLOR, _player)
+		boost_arrow.activate(target, _camera, BOOST_COLOR, _player, BOOST_ARROW_LABEL)
+		_update_boost_arrow_timer()
 
 
 func update_boost_timer(seconds_left: float) -> void:
 	_boost_time_left = seconds_left
-	_update_boost_timer_label()
+	_update_boost_arrow_timer()
 
 
 func hide_boost_indicator() -> void:
 	_boost_target = null
 	_boost_time_left = 0.0
-	boost_banner_row.visible = false
 	boost_arrow.deactivate()
-	_refresh_pickup_banner()
 
 
 func start_countdown(subtitle: String) -> void:
@@ -343,24 +344,49 @@ func _on_menu_button_pressed() -> void:
 		restart_pressed.emit()
 
 
-func _update_reload_timer_label() -> void:
-	reload_timer_label.text = "%ds" % maxi(ceili(_reload_time_left), 0)
+func _update_reload_arrow_timer() -> void:
+	if reload_arrow.visible:
+		reload_arrow.set_timer_text("%ds" % maxi(ceili(_reload_time_left), 0))
 
 
-func _update_health_timer_label() -> void:
-	health_timer_label.text = "%ds" % maxi(ceili(_health_time_left), 0)
+func _update_health_arrow_timer() -> void:
+	if health_arrow.visible:
+		health_arrow.set_timer_text("%ds" % maxi(ceili(_health_time_left), 0))
 
 
-func _update_boost_timer_label() -> void:
-	boost_timer_label.text = "%ds" % maxi(ceili(_boost_time_left), 0)
+func _update_boost_arrow_timer() -> void:
+	if boost_arrow.visible:
+		boost_arrow.set_timer_text("%ds" % maxi(ceili(_boost_time_left), 0))
 
 
-func _refresh_pickup_banner() -> void:
-	pickup_banner.visible = (
-		reload_banner_row.visible
-		or health_banner_row.visible
-		or boost_banner_row.visible
-	)
+func _setup_pickup_callout() -> void:
+	_pickup_callout = Label.new()
+	_pickup_callout.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pickup_callout.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_pickup_callout.add_theme_font_size_override("font_size", 44)
+	_pickup_callout.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pickup_callout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pickup_callout.z_index = 110
+	_pickup_callout.visible = false
+	add_child(_pickup_callout)
+
+
+func _flash_pickup_callout(message: String, color: Color) -> void:
+	if _callout_tween and _callout_tween.is_valid():
+		_callout_tween.kill()
+	_pickup_callout.text = message
+	_pickup_callout.add_theme_color_override("font_color", color)
+	_pickup_callout.visible = true
+	_callout_tween = create_tween()
+	_callout_tween.tween_interval(PICKUP_CALLOUT_DURATION)
+	_callout_tween.tween_callback(func() -> void: _pickup_callout.visible = false)
+
+
+func _hide_pickup_banner_rows() -> void:
+	reload_banner_row.visible = false
+	health_banner_row.visible = false
+	boost_banner_row.visible = false
+	pickup_banner.visible = false
 
 
 func _process(delta: float) -> void:
@@ -373,15 +399,30 @@ func _process(delta: float) -> void:
 
 	if _reload_target and is_instance_valid(_reload_target) and _camera and _player:
 		if not reload_arrow.visible:
-			reload_arrow.activate(_reload_target, _camera, RELOAD_COLOR, _player)
+			reload_arrow.activate(
+				_reload_target, _camera, RELOAD_COLOR, _player, RELOAD_ARROW_LABEL
+			)
+			_update_reload_arrow_timer()
 	elif reload_arrow.visible:
 		reload_arrow.deactivate()
 
 	if _health_target and is_instance_valid(_health_target) and _camera and _player:
 		if not health_arrow.visible:
-			health_arrow.activate(_health_target, _camera, HEALTH_COLOR, _player)
+			health_arrow.activate(
+				_health_target, _camera, HEALTH_COLOR, _player, HEALTH_ARROW_LABEL
+			)
+			_update_health_arrow_timer()
 	elif health_arrow.visible:
 		health_arrow.deactivate()
+
+	if _boost_target and is_instance_valid(_boost_target) and _camera and _player:
+		if not boost_arrow.visible:
+			boost_arrow.activate(
+				_boost_target, _camera, BOOST_COLOR, _player, BOOST_ARROW_LABEL
+			)
+			_update_boost_arrow_timer()
+	elif boost_arrow.visible:
+		boost_arrow.deactivate()
 
 
 func _on_player_health_changed(current: int, maximum: int) -> void:
