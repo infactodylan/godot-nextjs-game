@@ -5,6 +5,10 @@
 # Web export build output
 build/
 
+# Godot web binaries copied into the Next.js app
+web/public/game/*.wasm
+web/public/game/*.pck
+
 # Local Godot editor/tools (downloaded for CI/export)
 .tools/
 .godot-config/

@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GODOT="$ROOT/.tools/godot/Godot.app/Contents/MacOS/Godot"
-OUTPUT="$ROOT/build/web/index.html"
+BUILD_OUTPUT="$ROOT/build/web/index.html"
+PUBLIC_GAME="$ROOT/web/public/game"
 
 if [[ ! -x "$GODOT" ]]; then
 	echo "Godot editor not found at $GODOT"
@@ -11,7 +12,10 @@ if [[ ! -x "$GODOT" ]]; then
 	exit 1
 fi
 
-mkdir -p "$(dirname "$OUTPUT")"
+mkdir -p "$(dirname "$BUILD_OUTPUT")"
 
-"$GODOT" --headless --path "$ROOT" --export-release "Web" "$OUTPUT"
-echo "Web build exported to build/web/"
+"$GODOT" --headless --path "$ROOT" --export-release "Web" "$BUILD_OUTPUT"
+
+mkdir -p "$PUBLIC_GAME"
+rsync -a --delete --exclude='*.import' "$ROOT/build/web/" "$PUBLIC_GAME/"
+echo "Web build exported to build/web/ and synced to web/public/game/"

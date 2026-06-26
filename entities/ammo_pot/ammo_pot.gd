@@ -8,6 +8,8 @@ const DISPLAY_SCALE := 0.055
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite
 
+var _collected := false
+
 
 func _ready() -> void:
 	add_to_group("ammo_pot")
@@ -17,6 +19,14 @@ func _ready() -> void:
 	animated_sprite.scale = Vector2(DISPLAY_SCALE, DISPLAY_SCALE)
 	animated_sprite.play("idle")
 	_apply_layout()
+
+
+func _physics_process(_delta: float) -> void:
+	if _collected:
+		return
+
+	for body in get_overlapping_bodies():
+		_try_collect(body)
 
 
 func _build_sprite_frames() -> SpriteFrames:
@@ -49,11 +59,20 @@ func _apply_layout() -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	_try_collect(body)
+
+
+func _try_collect(body: Node) -> void:
+	if _collected:
+		return
+
 	if not body.is_in_group("player"):
 		return
 
-	if body.has_method("add_ammo"):
-		body.add_ammo()
+	if not body.has_method("add_ammo"):
+		return
 
+	_collected = true
+	body.add_ammo()
 	collected.emit()
 	queue_free()
