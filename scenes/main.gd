@@ -373,7 +373,12 @@ func _get_available_platforms() -> Array[Node2D]:
 
 
 func _platform_pickup_position(platform: Node2D) -> Vector2:
-	return platform.global_position + Vector2(0.0, -PLATFORM_TOP_OFFSET)
+	var roof_offset := PLATFORM_TOP_OFFSET
+	if platform.has_method("get_roof_offset"):
+		roof_offset = platform.call("get_roof_offset")
+	elif platform.has_meta("roof_offset"):
+		roof_offset = platform.get_meta("roof_offset")
+	return platform.global_position + Vector2(0.0, -roof_offset)
 
 
 func _on_player_died() -> void:

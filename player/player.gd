@@ -59,6 +59,8 @@ var _player_bullet_scene: PackedScene = preload("res://entities/player_bullet/pl
 
 
 func _ready() -> void:
+	z_index = WreckPlatformVisual.PLAYER_SORT_Z
+	z_as_relative = false
 	add_to_group("player")
 	animated_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var frames := PlayerSpriteFrames.build()
