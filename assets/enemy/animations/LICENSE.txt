@@ -1,0 +1,3 @@
+Zombie character art by Segel2D (OpenGameArt).
+
+Animations: Idle, Walk, Attack, Hurt, and Dead.

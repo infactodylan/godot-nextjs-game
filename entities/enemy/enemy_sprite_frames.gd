@@ -1,23 +1,72 @@
 class_name EnemySpriteFrames
 extends RefCounted
 
-const SHEET := preload("res://assets/enemy/enemy_character_sheet.png")
-const FRAME_COUNT := 6
-const IDLE_COL := 0
+const IDLE := [
+	preload("res://assets/enemy/animations/Idle/zombie_idle_00.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_01.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_02.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_03.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_04.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_05.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_06.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_07.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_08.png"),
+	preload("res://assets/enemy/animations/Idle/zombie_idle_09.png"),
+]
+const WALK := [
+	preload("res://assets/enemy/animations/Walk/zombie_walk_00.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_01.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_02.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_03.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_04.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_05.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_06.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_07.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_08.png"),
+	preload("res://assets/enemy/animations/Walk/zombie_walk_09.png"),
+]
+const ATTACK := [
+	preload("res://assets/enemy/animations/Attack/zombie_attack_00.png"),
+	preload("res://assets/enemy/animations/Attack/zombie_attack_01.png"),
+	preload("res://assets/enemy/animations/Attack/zombie_attack_02.png"),
+	preload("res://assets/enemy/animations/Attack/zombie_attack_03.png"),
+	preload("res://assets/enemy/animations/Attack/zombie_attack_04.png"),
+	preload("res://assets/enemy/animations/Attack/zombie_attack_05.png"),
+	preload("res://assets/enemy/animations/Attack/zombie_attack_06.png"),
+	preload("res://assets/enemy/animations/Attack/zombie_attack_07.png"),
+]
+const HURT := [
+	preload("res://assets/enemy/animations/Hurt/zombie_hurt_00.png"),
+	preload("res://assets/enemy/animations/Hurt/zombie_hurt_01.png"),
+	preload("res://assets/enemy/animations/Hurt/zombie_hurt_02.png"),
+	preload("res://assets/enemy/animations/Hurt/zombie_hurt_03.png"),
+	preload("res://assets/enemy/animations/Hurt/zombie_hurt_04.png"),
+	preload("res://assets/enemy/animations/Hurt/zombie_hurt_05.png"),
+	preload("res://assets/enemy/animations/Hurt/zombie_hurt_06.png"),
+	preload("res://assets/enemy/animations/Hurt/zombie_hurt_07.png"),
+]
+const DEAD := [
+	preload("res://assets/enemy/animations/Dead/zombie_dead_00.png"),
+	preload("res://assets/enemy/animations/Dead/zombie_dead_01.png"),
+	preload("res://assets/enemy/animations/Dead/zombie_dead_02.png"),
+	preload("res://assets/enemy/animations/Dead/zombie_dead_03.png"),
+	preload("res://assets/enemy/animations/Dead/zombie_dead_04.png"),
+	preload("res://assets/enemy/animations/Dead/zombie_dead_05.png"),
+	preload("res://assets/enemy/animations/Dead/zombie_dead_06.png"),
+	preload("res://assets/enemy/animations/Dead/zombie_dead_07.png"),
+]
 
 
 static func build() -> SpriteFrames:
-	var sheet := SHEET as Texture2D
-	if sheet == null:
-		push_error("Enemy sprite sheet failed to load.")
-		return SpriteFrames.new()
-
-	var frame_width := sheet.get_width() / float(FRAME_COUNT)
-	var frame_height := sheet.get_height()
 	var frames := SpriteFrames.new()
+	if frames.has_animation("default"):
+		frames.remove_animation("default")
 
-	_add_loop(frames, "idle", sheet, [IDLE_COL], frame_width, frame_height, 5.0)
-	_add_loop(frames, "run", sheet, [0, 1, 2, 3, 4, 5], frame_width, frame_height, 8.0)
+	_add_loop(frames, "idle", IDLE, 8.0)
+	_add_loop(frames, "walk", WALK, 10.0)
+	_add_loop(frames, "attack", ATTACK, 12.0, false)
+	_add_loop(frames, "hurt", HURT, 10.0, false)
+	_add_loop(frames, "dead", DEAD, 8.0, false)
 
 	return frames
 
@@ -25,17 +74,16 @@ static func build() -> SpriteFrames:
 static func _add_loop(
 	sf: SpriteFrames,
 	anim_name: String,
-	sheet: Texture2D,
-	cols: Array[int],
-	frame_width: float,
-	frame_height: float,
-	speed: float
+	textures: Array,
+	speed: float,
+	loop: bool = true
 ) -> void:
+	if textures.is_empty():
+		push_error("Enemy animation '%s' has no frames." % anim_name)
+		return
+
 	sf.add_animation(anim_name)
 	sf.set_animation_speed(anim_name, speed)
-	sf.set_animation_loop(anim_name, true)
-	for col in cols:
-		var atlas := AtlasTexture.new()
-		atlas.atlas = sheet
-		atlas.region = Rect2(col * frame_width, 0.0, frame_width, frame_height)
-		sf.add_frame(anim_name, atlas)
+	sf.set_animation_loop(anim_name, loop)
+	for texture in textures:
+		sf.add_frame(anim_name, texture)
