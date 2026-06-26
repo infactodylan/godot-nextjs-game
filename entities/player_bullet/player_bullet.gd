@@ -1,6 +1,6 @@
 extends Area2D
 
-const SPEED := 1080.0
+const SPEED := 2160.0
 const LIFETIME := 2.0
 
 var direction := Vector2.RIGHT
