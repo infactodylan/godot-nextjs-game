@@ -18,21 +18,14 @@ config/icon="res://icon.svg"
 [autoload]
 
 AudioManager="*res://autoload/audio_manager.gd"
+EnemyCoordinator="*res://autoload/enemy_coordinator.gd"
 
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=480
-window/size/mode=0
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
-
-[rendering]
-
-environment/defaults/default_clear_color=Color(0.1, 0.08, 0.2, 1)
-rendering_device/driver.windows="d3d12"
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
 
 [input]
 
@@ -89,3 +82,10 @@ pause={
 [physics]
 
 3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+rendering_device/driver.windows="d3d12"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.1, 0.08, 0.2, 1)

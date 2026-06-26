@@ -49,10 +49,22 @@ func configure(type: WreckType) -> void:
 				Vector2(SIGN_HALF_W * 2.0, SIGN_LINTEL_H)
 			)
 	set_meta("roof_offset", roof_offset)
+	set_meta("half_width", get_half_width())
 
 
 func get_roof_offset() -> float:
 	return roof_offset
+
+
+func get_half_width() -> float:
+	match wreck_type:
+		WreckType.CAR:
+			return CAR_HALF_W
+		WreckType.BUS:
+			return BUS_HALF_W
+		WreckType.STREET_SIGN:
+			return SIGN_HALF_W
+	return CAR_HALF_W
 
 
 func _clear_collision_shapes() -> void:

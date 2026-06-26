@@ -12,7 +12,8 @@ const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(3600.0, 900.0)
 const ENEMY_SPAWN_X := MAP_SIZE.x - 30.0
 const ENEMY_SPAWN_GROUND_Y := 820.0
-const ENEMY_SPAWN_INTERVAL := 0.45
+const ENEMY_SPAWN_INTERVAL := 0.55
+const ENEMY_SPAWN_SPACING := 38.0
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
 const CAMERA_ZOOM_MULTIPLIER := 3.3
@@ -173,7 +174,7 @@ func _spawn_single_enemy(wave_node: Node2D, index: int) -> void:
 	var enemy := _enemy_scene.instantiate() as CharacterBody2D
 	wave_node.add_child(enemy)
 	enemy.global_position = Vector2(
-		ENEMY_SPAWN_X - (index % 3) * 24.0,
+		ENEMY_SPAWN_X - index * ENEMY_SPAWN_SPACING,
 		ENEMY_SPAWN_GROUND_Y
 	)
 	enemy.defeated.connect(_on_enemy_defeated.bind(wave_node))

@@ -6,6 +6,8 @@
 size = Vector2(28, 36)
 
 [node name="Enemy" type="CharacterBody2D"]
+floor_snap_length = 8.0
+wall_min_slide_angle = 0.174533
 collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_script")
