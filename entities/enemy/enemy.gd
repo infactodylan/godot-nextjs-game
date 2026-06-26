@@ -3,6 +3,8 @@ extends CharacterBody2D
 signal defeated
 
 const SPEED := 110.0
+const PATROL_SPEED := 44.0
+const NEAR_PLAYER_RANGE := 480.0
 const JUMP_VELOCITY := -500.0
 const JUMP_FORWARD_SPEED := 300.0
 const JUMP_COOLDOWN := 0.5
@@ -21,16 +23,26 @@ const PLATFORM_LOOKAHEAD := 150.0
 const JUMP_TRIGGER_MIN_GAP := 28.0
 const JUMP_TRIGGER_MAX_GAP := 120.0
 const WORLD_COLLISION_MASK := 2
+const EMERGE_DEPTH := 52.0
+const EMERGE_DURATION := 0.6
+const STUCK_MOVE_THRESHOLD := 0.4
+const STUCK_REVERSE_TIME := 1.0
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var _player: CharacterBody2D
 var _is_dying := false
+var _awaiting_ground_for_death := false
+var _is_emerging := false
+var _emerge_target := Vector2.ZERO
+var _emerge_progress := 0.0
 var _attack_cooldown := 0.0
 var _jump_cooldown := 0.0
 var _air_momentum_timer := 0.0
 var _platform_jump_active := false
 var _jump_active := false
 var _jump_was_airborne := false
+var _reverse_timer := 0.0
+var _forced_direction := 0.0
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -53,10 +65,48 @@ func _find_player() -> void:
 
 
 func is_active() -> bool:
-	return not _is_dying
+	return not _is_dying and not _is_emerging
+
+
+func begin_emerge(target_position: Vector2) -> void:
+	_is_emerging = true
+	_emerge_target = target_position
+	_emerge_progress = 0.0
+	velocity = Vector2.ZERO
+	set_physics_process(false)
+	collision_shape.disabled = true
+	global_position = target_position + Vector2(0.0, EMERGE_DEPTH)
+	animated_sprite.modulate = Color(0.55, 0.48, 0.42, 1.0)
+	set_process(true)
+
+
+func _process(delta: float) -> void:
+	if not _is_emerging:
+		return
+
+	_emerge_progress += delta / EMERGE_DURATION
+	var t := clampf(_emerge_progress, 0.0, 1.0)
+	var eased := 1.0 - pow(1.0 - t, 3.0)
+	global_position.y = lerpf(_emerge_target.y + EMERGE_DEPTH, _emerge_target.y, eased)
+	animated_sprite.modulate = Color(0.55, 0.48, 0.42, 1.0).lerp(Color.WHITE, eased)
+	if t >= 1.0:
+		_finish_emerge()
+
+
+func _finish_emerge() -> void:
+	_is_emerging = false
+	global_position = _emerge_target
+	animated_sprite.modulate = Color.WHITE
+	collision_shape.disabled = false
+	set_process(false)
+	set_physics_process(true)
 
 
 func _physics_process(delta: float) -> void:
+	if _awaiting_ground_for_death:
+		_process_death_fall(delta)
+		return
+
 	if _is_dying:
 		return
 
@@ -66,6 +116,10 @@ func _physics_process(delta: float) -> void:
 		_jump_cooldown = maxf(_jump_cooldown - delta, 0.0)
 	if _air_momentum_timer > 0.0:
 		_air_momentum_timer = maxf(_air_momentum_timer - delta, 0.0)
+	if _reverse_timer > 0.0:
+		_reverse_timer = maxf(_reverse_timer - delta, 0.0)
+		if _reverse_timer <= 0.0:
+			_forced_direction = 0.0
 
 	if not is_on_floor():
 		velocity.y += gravity * delta
@@ -74,50 +128,130 @@ func _physics_process(delta: float) -> void:
 
 	_update_jump_state()
 
-	var direction := 0.0
+	var chase_direction := 0.0
 	if _attack_cooldown > 0.0 and animated_sprite.animation == "attack":
 		velocity.x = 0.0
 	elif _player and is_instance_valid(_player) and not _player.is_dead:
-		direction = signf(_player.global_position.x - global_position.x)
-		_update_animation(direction)
+		chase_direction = _get_chase_direction()
 	else:
 		velocity.x = 0.0
 		_update_animation(0.0)
 
+	var direction := chase_direction
+	if _forced_direction != 0.0:
+		direction = _forced_direction
+		_update_animation(_forced_direction)
+	elif chase_direction != 0.0:
+		_update_animation(chase_direction)
+
 	var jumped := false
 	if (
-		is_on_floor()
+		_forced_direction == 0.0
+		and is_on_floor()
 		and _jump_cooldown <= 0.0
 		and _attack_cooldown <= 0.0
-		and direction != 0.0
-		and not EnemyCoordinator.blocks_movement(self, direction)
-		and _wants_jump(direction)
+		and chase_direction != 0.0
+		and not EnemyCoordinator.blocks_movement(self, chase_direction)
+		and _wants_jump(chase_direction)
 	):
 		if EnemyCoordinator.is_lead_enemy(self, _player) and EnemyCoordinator.request_jump(self):
-			var platform_jump := _needs_platform_jump(direction)
+			var platform_jump := _needs_platform_jump(chase_direction)
 			if platform_jump:
 				_begin_platform_jump()
 			else:
 				_jump_active = true
 				_jump_was_airborne = false
 			velocity.y = JUMP_VELOCITY
-			velocity.x = direction * JUMP_FORWARD_SPEED
+			velocity.x = chase_direction * JUMP_FORWARD_SPEED
 			_jump_cooldown = JUMP_COOLDOWN
 			_air_momentum_timer = AIR_MOMENTUM_TIME
 			jumped = true
 
 	if not jumped and direction != 0.0 and _attack_cooldown <= 0.0:
-		if EnemyCoordinator.blocks_movement(self, direction):
-			velocity.x = 0.0
-		elif _air_momentum_timer > 0.0 or not is_on_floor():
-			velocity.x = direction * JUMP_FORWARD_SPEED
+		if _forced_direction == 0.0 and (_air_momentum_timer > 0.0 or not is_on_floor()):
+			velocity.x = chase_direction * JUMP_FORWARD_SPEED
 		else:
-			velocity.x = direction * SPEED
+			velocity.x = direction * _get_ground_move_speed()
 
+	var previous_x := global_position.x
 	move_and_slide()
 	_clamp_velocity_for_spacing(direction)
 	EnemyCoordinator.queue_spacing()
+	if _forced_direction == 0.0:
+		_check_world_stuck(chase_direction, previous_x)
 	_check_player_collision()
+
+
+func _get_chase_direction() -> float:
+	var direction := signf(_player.global_position.x - global_position.x)
+	if direction == 0.0:
+		direction = -1.0 if animated_sprite.flip_h else 1.0
+	return direction
+
+
+func _get_ground_move_speed() -> float:
+	if _player == null or not is_instance_valid(_player) or _player.is_dead:
+		return PATROL_SPEED
+
+	var distance := absf(_player.global_position.x - global_position.x)
+	var blend := 1.0 - clampf(distance / NEAR_PLAYER_RANGE, 0.0, 1.0)
+	return lerpf(PATROL_SPEED, SPEED, blend)
+
+
+func _check_world_stuck(chase_direction: float, previous_x: float) -> void:
+	if (
+		chase_direction == 0.0
+		or not is_on_floor()
+		or _attack_cooldown > 0.0
+		or absf(velocity.x) < 4.0
+	):
+		return
+
+	if absf(global_position.x - previous_x) > STUCK_MOVE_THRESHOLD:
+		return
+
+	if EnemyCoordinator.blocks_movement(self, chase_direction) and not _is_world_blocking(chase_direction):
+		return
+
+	if not _is_world_blocking(chase_direction):
+		return
+
+	_forced_direction = -chase_direction
+	_reverse_timer = STUCK_REVERSE_TIME
+	_update_animation(_forced_direction)
+
+
+func _is_world_blocking(direction: float) -> bool:
+	if _is_world_blocking_slide(direction):
+		return true
+	return not test_move(global_transform, Vector2(direction * 12.0, 0.0))
+
+
+func _is_world_blocking_slide(direction: float) -> bool:
+	for i in get_slide_collision_count():
+		var collision := get_slide_collision(i)
+		var collider := collision.get_collider()
+		if collider == null:
+			continue
+		if collider.is_in_group("player"):
+			continue
+		if collider.is_in_group("enemy"):
+			continue
+		var normal := collision.get_normal()
+		if absf(normal.x) > 0.35 and signf(normal.x) != direction:
+			return true
+	return false
+
+
+func _process_death_fall(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, 420.0 * delta)
+	if not is_on_floor():
+		velocity.y += gravity * delta
+	elif velocity.y > 0.0:
+		velocity.y = 0.0
+	move_and_slide()
+	if is_on_floor():
+		_begin_death_animation()
 
 
 func _update_jump_state() -> void:
@@ -164,14 +298,12 @@ func _end_platform_jump() -> void:
 func _update_animation(direction: float) -> void:
 	if _attack_cooldown > 0.0 and animated_sprite.animation == "attack":
 		return
+	if _forced_direction != 0.0:
+		direction = _forced_direction
 
-	if absf(direction) > 0.0:
-		animated_sprite.flip_h = direction < 0.0
-		if animated_sprite.animation != "walk":
-			animated_sprite.play("walk")
-	else:
-		if animated_sprite.animation != "idle":
-			animated_sprite.play("idle")
+	animated_sprite.flip_h = direction < 0.0
+	if animated_sprite.animation != "walk":
+		animated_sprite.play("walk")
 
 
 func _wants_jump(direction: float) -> bool:
@@ -214,14 +346,15 @@ func _clamp_velocity_for_spacing(direction: float) -> void:
 	if direction == 0.0:
 		return
 
+	var hold_speed := direction * PATROL_SPEED
 	if direction < 0.0:
 		var min_x := _min_allowed_x()
 		if min_x > -INF and global_position.x <= min_x + 0.25:
-			velocity.x = 0.0
+			velocity.x = hold_speed
 	elif direction > 0.0:
 		var max_x := _max_allowed_x()
 		if max_x < INF and global_position.x >= max_x - 0.25:
-			velocity.x = 0.0
+			velocity.x = hold_speed
 
 
 func _min_allowed_x() -> float:
@@ -358,13 +491,24 @@ func die() -> void:
 		return
 
 	_is_dying = true
-	velocity = Vector2.ZERO
+	_is_emerging = false
+	set_process(false)
 	if _platform_jump_active:
 		_end_platform_jump()
 	elif _jump_active:
 		_end_jump()
 	else:
 		EnemyCoordinator.clear_jump_if(self)
+
+	if is_on_floor():
+		_begin_death_animation()
+	else:
+		_awaiting_ground_for_death = true
+
+
+func _begin_death_animation() -> void:
+	_awaiting_ground_for_death = false
+	velocity = Vector2.ZERO
 	set_physics_process(false)
 	collision_shape.set_deferred("disabled", true)
 	AudioManager.play_enemy_death()

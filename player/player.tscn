@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://bplayer001"]
+[gd_scene load_steps=4 format=3 uid="uid://bplayer001"]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_script"]
+[ext_resource type="Script" path="res://player/player_overhead_stats.gd" id="2_overhead"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(36, 56)
@@ -17,6 +18,9 @@ shape = SubResource("RectangleShape2D_player")
 
 [node name="AnimatedSprite" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -28)
+
+[node name="OverheadStats" type="Node2D" parent="."]
+script = ExtResource("2_overhead")
 
 [node name="Muzzle" type="Node2D" parent="."]
 position = Vector2(20, -32)

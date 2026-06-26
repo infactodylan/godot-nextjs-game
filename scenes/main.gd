@@ -10,10 +10,17 @@ const AMMO_POT_DURATION := 20.0
 const HEALTH_POTION_DURATION := 20.0
 const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(3600.0, 900.0)
-const ENEMY_SPAWN_X := MAP_SIZE.x - 30.0
 const ENEMY_SPAWN_GROUND_Y := 820.0
-const ENEMY_SPAWN_INTERVAL := 0.55
-const ENEMY_SPAWN_SPACING := 38.0
+const ENEMY_SPAWN_MIN_X := MAP_SIZE.x * 0.5
+const ENEMY_SPAWN_MAX_X := MAP_SIZE.x - 48.0
+const ENEMY_SPAWN_SPACING := EnemyCoordinator.MIN_CENTER_SEPARATION
+const ENEMY_SPAWN_BATCH_MIN := 1
+const ENEMY_SPAWN_BATCH_MAX := 4
+const ENEMY_SPAWN_BURST_DELAY_MIN := 0.65
+const ENEMY_SPAWN_BURST_DELAY_MAX := 2.4
+const ENEMY_SPAWN_BATCH_STAGGER := 0.14
+const ENEMY_SPAWN_BODY_HALF_WIDTH := 14.0
+const ENEMY_SPAWN_PLATFORM_MARGIN := 10.0
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
 const CAMERA_ZOOM_MULTIPLIER := 3.3
@@ -46,9 +53,11 @@ var _health_potion_timer := 0.0
 var _grace_leads_to_wave2 := true
 var _super_weapon_subtitle := "Get the super weapon!"
 var _phase_timer := ENEMY_SPAWN_DELAY
+var _spawn_rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	_spawn_rng.randomize()
 	_setup_window_size()
 	_setup_map_camera()
 	_disable_boss()
@@ -154,14 +163,106 @@ func _update_camera_follow() -> void:
 func _spawn_wave(wave_node: Node2D, enemy_count: int, wave_number: int) -> void:
 	_clear_wave(wave_node)
 	hud.update_wave_status(wave_number, enemy_count, enemy_count)
-	for i in enemy_count:
+	var spawned := 0
+	while spawned < enemy_count:
 		if wave_number == 1 and _phase != GamePhase.WAVE1:
 			return
 		if wave_number == 2 and _phase != GamePhase.WAVE2:
 			return
-		_spawn_single_enemy(wave_node, i)
-		if i < enemy_count - 1:
-			await get_tree().create_timer(ENEMY_SPAWN_INTERVAL).timeout
+
+		var batch_size := mini(
+			_spawn_rng.randi_range(ENEMY_SPAWN_BATCH_MIN, ENEMY_SPAWN_BATCH_MAX),
+			enemy_count - spawned
+		)
+		var positions := _pick_spawn_positions(batch_size)
+		for i in batch_size:
+			if wave_number == 1 and _phase != GamePhase.WAVE1:
+				return
+			if wave_number == 2 and _phase != GamePhase.WAVE2:
+				return
+			_spawn_single_enemy(wave_node, positions[i])
+			spawned += 1
+			if i < batch_size - 1:
+				await get_tree().create_timer(ENEMY_SPAWN_BATCH_STAGGER).timeout
+
+		if spawned < enemy_count:
+			var delay := _spawn_rng.randf_range(
+				ENEMY_SPAWN_BURST_DELAY_MIN,
+				ENEMY_SPAWN_BURST_DELAY_MAX
+			)
+			await get_tree().create_timer(delay).timeout
+
+
+func _pick_spawn_positions(count: int) -> Array[Vector2]:
+	var positions: Array[Vector2] = []
+	var attempts := 0
+	var max_attempts := count * 80
+
+	while positions.size() < count and attempts < max_attempts:
+		attempts += 1
+		var x := _spawn_rng.randf_range(ENEMY_SPAWN_MIN_X, ENEMY_SPAWN_MAX_X)
+		if _is_spawn_x_valid(x, positions):
+			positions.append(Vector2(x, ENEMY_SPAWN_GROUND_Y))
+
+	while positions.size() < count:
+		var x := _find_fallback_spawn_x(positions)
+		if x < 0.0:
+			break
+		positions.append(Vector2(x, ENEMY_SPAWN_GROUND_Y))
+
+	return positions
+
+
+func _find_fallback_spawn_x(existing: Array[Vector2]) -> float:
+	var step := ENEMY_SPAWN_SPACING
+	var x := ENEMY_SPAWN_MIN_X
+	while x <= ENEMY_SPAWN_MAX_X:
+		if _is_spawn_x_valid(x, existing):
+			return x
+		x += step
+	return -1.0
+
+
+func _is_spawn_x_valid(x: float, pending: Array[Vector2]) -> bool:
+	if _spawn_overlaps_platform(x):
+		return false
+
+	for pos in pending:
+		if absf(pos.x - x) < ENEMY_SPAWN_SPACING:
+			return false
+
+	for node in get_tree().get_nodes_in_group("enemy"):
+		if not node is Node2D:
+			continue
+		var enemy := node as Node2D
+		if absf(enemy.global_position.y - ENEMY_SPAWN_GROUND_Y) > 80.0:
+			continue
+		if absf(enemy.global_position.x - x) < ENEMY_SPAWN_SPACING:
+			return false
+
+	return true
+
+
+func _spawn_overlaps_platform(x: float) -> bool:
+	var body_span := ENEMY_SPAWN_BODY_HALF_WIDTH + ENEMY_SPAWN_PLATFORM_MARGIN
+
+	for node in get_tree().get_nodes_in_group("platform"):
+		if not node is Node2D:
+			continue
+		var platform := node as Node2D
+		if absf(platform.global_position.y - ENEMY_SPAWN_GROUND_Y) > 24.0:
+			continue
+
+		var half_w: float = 90.0
+		if platform.has_method("get_half_width"):
+			half_w = platform.call("get_half_width")
+		elif platform.has_meta("half_width"):
+			half_w = platform.get_meta("half_width")
+
+		if absf(x - platform.global_position.x) < half_w + body_span:
+			return true
+
+	return false
 
 
 func _clear_wave(wave_node: Node2D) -> void:
@@ -170,14 +271,14 @@ func _clear_wave(wave_node: Node2D) -> void:
 		child.free()
 
 
-func _spawn_single_enemy(wave_node: Node2D, index: int) -> void:
+func _spawn_single_enemy(wave_node: Node2D, spawn_position: Vector2) -> void:
 	var enemy := _enemy_scene.instantiate() as CharacterBody2D
 	wave_node.add_child(enemy)
-	enemy.global_position = Vector2(
-		ENEMY_SPAWN_X - index * ENEMY_SPAWN_SPACING,
-		ENEMY_SPAWN_GROUND_Y
-	)
 	enemy.defeated.connect(_on_enemy_defeated.bind(wave_node))
+	if enemy.has_method("begin_emerge"):
+		enemy.begin_emerge(spawn_position)
+	else:
+		enemy.global_position = spawn_position
 
 
 func _start_wave1() -> void:
