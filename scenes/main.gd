@@ -15,6 +15,7 @@ const ENEMY_SPAWN_GROUND_Y := 820.0
 const ENEMY_SPAWN_INTERVAL := 0.45
 const PLATFORM_TOP_OFFSET := 12.0
 const CAMERA_ZOOM_MULTIPLIER := 3.3
+const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -121,10 +122,12 @@ func _setup_map_camera() -> void:
 		viewport_size.y / MAP_SIZE.y
 	)
 	var desired_zoom := base_zoom * CAMERA_ZOOM_MULTIPLIER
-	var max_vertical_zoom := viewport_size.y / MAP_SIZE.y
-	var zoom_factor := minf(desired_zoom, max_vertical_zoom)
+	var max_zoom_for_play_area_height := (
+		viewport_size.y * MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO / MAP_SIZE.y
+	)
+	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
 	map_camera.zoom = Vector2(zoom_factor, zoom_factor)
-	map_camera.position = MAP_SIZE * 0.5
+	map_camera.position = player.global_position
 
 
 func _update_camera_follow() -> void:
@@ -134,7 +137,8 @@ func _update_camera_follow() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var half_view := viewport_size / (2.0 * map_camera.zoom)
 	var target_x := clampf(player.global_position.x, half_view.x, MAP_SIZE.x - half_view.x)
-	map_camera.position = Vector2(target_x, MAP_SIZE.y * 0.5)
+	var target_y := clampf(player.global_position.y, half_view.y, MAP_SIZE.y - half_view.y)
+	map_camera.position = Vector2(target_x, target_y)
 
 
 func _spawn_wave(wave_node: Node2D, enemy_count: int, wave_number: int) -> void:

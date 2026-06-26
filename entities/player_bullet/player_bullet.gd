@@ -3,17 +3,18 @@ extends Area2D
 const SPEED := 600.0
 const LIFETIME := 2.0
 
-var direction := 1.0
+var direction := Vector2.RIGHT
 
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
 	get_tree().create_timer(LIFETIME).timeout.connect(queue_free)
+	rotation = direction.angle()
 
 
 func _physics_process(delta: float) -> void:
-	position.x += direction * SPEED * delta
+	position += direction * SPEED * delta
 
 
 func _on_body_entered(body: Node2D) -> void:

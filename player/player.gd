@@ -93,8 +93,6 @@ func _physics_process(delta: float) -> void:
 
 	if not is_stunned:
 		direction = Input.get_axis("move_left", "move_right")
-		if direction != 0.0:
-			facing_direction = direction
 		wants_crouch = Input.is_action_pressed("move_down")
 		jump_just_pressed = Input.is_action_just_pressed("jump")
 		if jump_just_pressed:
@@ -140,6 +138,9 @@ func _physics_process(delta: float) -> void:
 			_try_shoot()
 
 	move_and_slide()
+	_clamp_to_screen_bounds()
+	if not is_stunned:
+		_update_aim_facing()
 	_update_muzzle()
 	_update_animation(is_crouching)
 
@@ -170,10 +171,45 @@ func _update_animation(is_crouching: bool) -> void:
 			animated_sprite.play(idle_anim)
 
 
+func _clamp_to_screen_bounds() -> void:
+	var camera := get_viewport().get_camera_2d()
+	if not camera:
+		return
+
+	var half_view := get_viewport().get_visible_rect().size / (2.0 * camera.zoom)
+	var center := camera.get_screen_center_position()
+	var min_x := center.x - half_view.x + HALF_WIDTH
+	var max_x := center.x + half_view.x - HALF_WIDTH
+
+	if global_position.x < min_x:
+		global_position.x = min_x
+		velocity.x = maxf(velocity.x, 0.0)
+	elif global_position.x > max_x:
+		global_position.x = max_x
+		velocity.x = minf(velocity.x, 0.0)
+
+
 func _update_muzzle() -> void:
+	var aim_direction := _get_aim_direction()
 	var half_height := _current_height * 0.5
-	var barrel_x := 20.0 * facing_direction
-	muzzle.position = Vector2(barrel_x, -half_height - 4.0)
+	var shoulder := Vector2(0.0, -half_height - 4.0)
+	muzzle.position = shoulder + aim_direction * 20.0
+
+
+func _update_aim_facing() -> void:
+	var mouse_world := get_global_mouse_position()
+	var aim_x := mouse_world.x - global_position.x
+	if absf(aim_x) > 1.0:
+		facing_direction = signf(aim_x)
+
+
+func _get_aim_direction() -> Vector2:
+	var half_height := _current_height * 0.5
+	var aim_origin := global_position + Vector2(0.0, -half_height - 4.0)
+	var to_mouse := get_global_mouse_position() - aim_origin
+	if to_mouse.length_squared() < 1.0:
+		return Vector2(facing_direction, 0.0)
+	return to_mouse.normalized()
 
 
 func _try_shoot() -> void:
@@ -203,7 +239,7 @@ func _fire_bullet() -> void:
 	var bullet := _player_bullet_scene.instantiate()
 	get_tree().current_scene.add_child(bullet)
 	bullet.global_position = muzzle.global_position
-	bullet.direction = facing_direction
+	bullet.direction = _get_aim_direction()
 
 
 func add_ammo() -> void:
