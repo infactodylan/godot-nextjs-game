@@ -24,10 +24,12 @@ const MAX_AMMO := 6
 const LOW_AMMO_THRESHOLD := 2
 const SUPER_WEAPON_DURATION := 10.0
 const SUPER_MAG_SIZE := 20
-const SPRITE_SCALE := 0.051
-const SPRITE_FRAME_HEIGHT := 1105.0
-const SPRITE_FEET_PADDING_RIGHT := 229.0
-const SPRITE_FEET_PADDING_LEFT := 11.0
+const SPRITE_SCALE := 56.0 / 278.0
+const SPRITE_TEXTURE_SIZE := 512.0
+const SPRITE_FOOT_Y := 510.0
+const GUN_HAND_OFFSET := Vector2(12.0, -34.0)
+const GUN_BARREL_LENGTH := 26.0
+const FIRE_POSE_TIME := 0.14
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var facing_direction := 1.0
@@ -45,6 +47,7 @@ var _current_height := STAND_HEIGHT
 var _shoot_cooldown := 0.0
 var _invincibility_timer := 0.0
 var _stun_timer := 0.0
+var _fire_pose_timer := 0.0
 var _normal_modulate := Color.WHITE
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -62,7 +65,7 @@ func _ready() -> void:
 		push_error("Player has no sprite animations.")
 	else:
 		animated_sprite.sprite_frames = frames
-		animated_sprite.play("idle_right")
+		animated_sprite.play("idle")
 	_apply_stance(STAND_HEIGHT)
 	health_changed.emit(health, MAX_HEALTH)
 	ammo_changed.emit(ammo, MAX_AMMO)
@@ -75,6 +78,7 @@ func _physics_process(delta: float) -> void:
 	_shoot_cooldown = max(_shoot_cooldown - delta, 0.0)
 	_invincibility_timer = max(_invincibility_timer - delta, 0.0)
 	_stun_timer = max(_stun_timer - delta, 0.0)
+	_fire_pose_timer = max(_fire_pose_timer - delta, 0.0)
 	_update_invincibility_visual()
 
 	var is_stunned := _stun_timer > 0.0
@@ -145,30 +149,40 @@ func _physics_process(delta: float) -> void:
 	_update_animation(is_crouching)
 
 
-func _idle_animation() -> String:
-	return "idle_right" if facing_direction >= 0.0 else "idle_left"
-
-
-func _run_animation() -> String:
-	return "run_right" if facing_direction >= 0.0 else "run_left"
-
-
 func _update_animation(is_crouching: bool) -> void:
-	animated_sprite.flip_h = false
-	var idle_anim := _idle_animation()
-	var run_anim := _run_animation()
+	animated_sprite.flip_h = facing_direction < 0.0
 
-	if not is_on_floor() or is_crouching:
-		if animated_sprite.animation != idle_anim:
-			animated_sprite.play(idle_anim)
+	if _fire_pose_timer > 0.0:
+		var fire_anim := _pick_fire_animation(is_crouching)
+		if animated_sprite.animation != fire_anim:
+			animated_sprite.play(fire_anim)
 		return
 
+	var target_anim := _pick_movement_animation(is_crouching)
+	if animated_sprite.animation != target_anim:
+		animated_sprite.play(target_anim)
+
+
+func _pick_movement_animation(is_crouching: bool) -> String:
+	if not is_on_floor():
+		return "fall" if velocity.y > 0.0 else "jump"
+	if is_crouching:
+		return "crouch"
 	if abs(velocity.x) > 20.0:
-		if animated_sprite.animation != run_anim:
-			animated_sprite.play(run_anim)
-	else:
-		if animated_sprite.animation != idle_anim:
-			animated_sprite.play(idle_anim)
+		return "run"
+	return "idle"
+
+
+func _pick_fire_animation(is_crouching: bool) -> String:
+	if _is_aiming_up():
+		return "shoot_up"
+	if not is_on_floor():
+		return "fall_shoot" if velocity.y > 0.0 else "jump_shoot"
+	if is_crouching:
+		return "crouch_shoot"
+	if abs(velocity.x) > 20.0:
+		return "run_shoot"
+	return "shoot"
 
 
 func _clamp_to_screen_bounds() -> void:
@@ -191,16 +205,28 @@ func _clamp_to_screen_bounds() -> void:
 
 func _update_muzzle() -> void:
 	var aim_direction := _get_aim_direction()
-	var half_height := _current_height * 0.5
-	var shoulder := Vector2(0.0, -half_height - 4.0)
-	muzzle.position = shoulder + aim_direction * 20.0
+	var height_ratio := _current_height / STAND_HEIGHT
+	var hand := Vector2(GUN_HAND_OFFSET.x, GUN_HAND_OFFSET.y * height_ratio)
+	if facing_direction < 0.0:
+		hand.x *= -1.0
+	muzzle.position = hand + aim_direction * GUN_BARREL_LENGTH * height_ratio
 
 
 func _update_aim_facing() -> void:
-	var mouse_world := get_global_mouse_position()
-	var aim_x := mouse_world.x - global_position.x
-	if absf(aim_x) > 1.0:
-		facing_direction = signf(aim_x)
+	var aim_direction := _get_aim_direction()
+	if absf(aim_direction.x) > 0.15:
+		facing_direction = signf(aim_direction.x)
+
+
+func _is_aiming_up() -> bool:
+	var aim_direction := _get_aim_direction()
+	return aim_direction.y < 0.0 and absf(aim_direction.y) >= absf(aim_direction.x)
+
+
+func _start_fire_pose() -> void:
+	_fire_pose_timer = FIRE_POSE_TIME
+	var is_crouching := _current_height < STAND_HEIGHT - 1.0
+	animated_sprite.play(_pick_fire_animation(is_crouching))
 
 
 func _get_aim_direction() -> Vector2:
@@ -219,6 +245,7 @@ func _try_shoot() -> void:
 	_shoot_cooldown = SHOOT_COOLDOWN
 	ammo -= 1
 	ammo_changed.emit(ammo, MAX_AMMO)
+	_start_fire_pose()
 	_fire_bullet()
 
 
@@ -231,6 +258,7 @@ func _try_shoot_super() -> void:
 
 	super_mag_ammo -= 1
 	_shoot_cooldown = SUPER_FIRE_COOLDOWN
+	_start_fire_pose()
 	_fire_bullet()
 
 
@@ -295,13 +323,15 @@ func die() -> void:
 	is_dead = true
 	velocity = Vector2.ZERO
 	set_physics_process(false)
-	animated_sprite.pause()
+	animated_sprite.flip_h = facing_direction < 0.0
+	animated_sprite.animation_finished.connect(_on_death_animation_finished, CONNECT_ONE_SHOT)
+	animated_sprite.play("death")
+
+
+func _on_death_animation_finished() -> void:
+	if animated_sprite.animation != "death":
+		return
 	died.emit()
-
-
-func _sprite_foot_offset() -> float:
-	var feet_padding := SPRITE_FEET_PADDING_RIGHT if facing_direction >= 0.0 else SPRITE_FEET_PADDING_LEFT
-	return feet_padding * SPRITE_SCALE
 
 
 func _apply_stance(height: float) -> void:
@@ -310,7 +340,7 @@ func _apply_stance(height: float) -> void:
 	var rect_shape := collision_shape.shape as RectangleShape2D
 	rect_shape.size = Vector2(HALF_WIDTH * 2.0, height)
 	collision_shape.position = Vector2(0.0, -half_height)
-	animated_sprite.position.y = -half_height + _sprite_foot_offset() * height_ratio
+	animated_sprite.position.y = -(SPRITE_FOOT_Y - SPRITE_TEXTURE_SIZE * 0.5) * SPRITE_SCALE * height_ratio
 	animated_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE * height_ratio)
 
 
