@@ -273,9 +273,14 @@ func _check_stomp_enemies() -> void:
 		var collision := get_slide_collision(i)
 		_try_stomp_enemy(collision.get_collider(), collision.get_normal(), checked)
 
-	var floor_collider := get_floor_collider()
-	if floor_collider:
-		_try_stomp_enemy(floor_collider, Vector2.UP, checked)
+	if is_on_floor():
+		var last_collision := get_last_slide_collision()
+		if last_collision:
+			_try_stomp_enemy(
+				last_collision.get_collider(),
+				last_collision.get_normal(),
+				checked
+			)
 
 
 func _try_stomp_enemy(
