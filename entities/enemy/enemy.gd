@@ -426,8 +426,31 @@ func _check_player_collision() -> void:
 	for i in get_slide_collision_count():
 		var collider := get_slide_collision(i).get_collider()
 		if collider and collider.is_in_group("player") and collider.has_method("take_damage"):
+			if _is_player_stomping_from_above(collider):
+				continue
 			collider.take_damage(1)
 			_play_attack()
+
+
+func _is_player_stomping_from_above(player: Node) -> bool:
+	if not player is CharacterBody2D:
+		return false
+
+	var body := player as CharacterBody2D
+	if body.velocity.y <= 0.0:
+		return false
+
+	var player_feet_y := body.global_position.y
+	var enemy_top_y := global_position.y - STAND_HEIGHT
+	if player_feet_y > enemy_top_y + 14.0:
+		return false
+
+	var player_half_width := 18.0
+	var player_left := body.global_position.x - player_half_width
+	var player_right := body.global_position.x + player_half_width
+	var enemy_left := global_position.x - HALF_WIDTH
+	var enemy_right := global_position.x + HALF_WIDTH
+	return enemy_left < player_right and enemy_right > player_left
 
 
 func _play_attack() -> void:

@@ -59,6 +59,8 @@ var _needs_resume_countdown: Callable
 var _restore_pre_start_countdown: Callable
 var _pickup_callout: Label
 var _callout_tween: Tween
+var _shake_off_hint: Control
+var _shake_off_hint_shown := false
 
 
 func _ready() -> void:
@@ -83,6 +85,7 @@ func _ready() -> void:
 	menu_button.pressed.connect(_on_menu_button_pressed)
 	_disable_button_keyboard_focus()
 	_setup_pickup_callout()
+	_setup_shake_off_hint()
 	show_start_screen()
 
 
@@ -121,6 +124,7 @@ func bind_player(player: CharacterBody2D) -> void:
 	player.ammo_changed.connect(_on_player_ammo_changed)
 	player.super_weapon_changed.connect(_on_super_weapon_changed)
 	player.died.connect(_on_player_died)
+	player.first_enemy_on_top.connect(show_shake_off_hint_once)
 	_on_player_health_changed(player.health, 4)
 	_on_player_ammo_changed(player.ammo, 6)
 
@@ -193,6 +197,15 @@ func hide_boost_indicator() -> void:
 	_boost_target = null
 	_boost_time_left = 0.0
 	boost_arrow.deactivate()
+
+
+func show_shake_off_hint_once(enemy: CharacterBody2D) -> void:
+	if _shake_off_hint_shown or enemy == null or not is_instance_valid(enemy):
+		return
+	if _camera == null:
+		return
+	_shake_off_hint_shown = true
+	_shake_off_hint.activate(enemy, _camera)
 
 
 func start_countdown(subtitle: String) -> void:
@@ -346,7 +359,10 @@ func _on_menu_button_pressed() -> void:
 
 func _update_reload_arrow_timer() -> void:
 	if reload_arrow.visible:
-		reload_arrow.set_timer_text("%ds" % maxi(ceili(_reload_time_left), 0))
+		if _reload_time_left < 0.0:
+			reload_arrow.set_timer_text("")
+		else:
+			reload_arrow.set_timer_text("%ds" % maxi(ceili(_reload_time_left), 0))
 
 
 func _update_health_arrow_timer() -> void:
@@ -380,6 +396,13 @@ func _flash_pickup_callout(message: String, color: Color) -> void:
 	_callout_tween = create_tween()
 	_callout_tween.tween_interval(PICKUP_CALLOUT_DURATION)
 	_callout_tween.tween_callback(func() -> void: _pickup_callout.visible = false)
+
+
+func _setup_shake_off_hint() -> void:
+	_shake_off_hint = Control.new()
+	_shake_off_hint.name = "ShakeOffHint"
+	_shake_off_hint.set_script(load("res://scenes/shake_off_hint.gd"))
+	add_child(_shake_off_hint)
 
 
 func _hide_pickup_banner_rows() -> void:

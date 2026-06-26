@@ -6,7 +6,6 @@ const ENEMY_SPAWN_DELAY := 5.0
 const SUPER_WEAPON_GRACE := 105.0
 const WAVE1_ENEMY_COUNT := 12
 const WAVE2_ENEMY_COUNT := 18
-const AMMO_POT_DURATION := 20.0
 const HEALTH_POTION_DURATION := 20.0
 const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(3600.0, 900.0)
@@ -48,7 +47,6 @@ var _wave2_alive := 0
 var _active_ammo_pot: Area2D
 var _active_health_potion: Area2D
 var _active_super_weapon: Area2D
-var _ammo_pot_timer := 0.0
 var _health_potion_timer := 0.0
 var _grace_leads_to_wave2 := true
 var _super_weapon_subtitle := "Get the super weapon!"
@@ -289,12 +287,6 @@ func _start_wave1() -> void:
 
 
 func _update_pickup_timers(delta: float) -> void:
-	if _active_ammo_pot and is_instance_valid(_active_ammo_pot):
-		_ammo_pot_timer -= delta
-		hud.update_reload_timer(_ammo_pot_timer)
-		if _ammo_pot_timer <= 0.0:
-			_despawn_ammo_pot()
-
 	if _active_health_potion and is_instance_valid(_active_health_potion):
 		_health_potion_timer -= delta
 		hud.update_health_timer(_health_potion_timer)
@@ -396,14 +388,12 @@ func _try_spawn_ammo_pot() -> void:
 		return
 
 	var platform: Node2D = platforms.pick_random()
-	_despawn_ammo_pot()
 	var pot := _ammo_pot_scene.instantiate() as Area2D
 	pickups.add_child(pot)
 	pot.global_position = _platform_pickup_position(platform)
 	pot.collected.connect(_on_ammo_pot_collected)
 	_active_ammo_pot = pot
-	_ammo_pot_timer = AMMO_POT_DURATION
-	hud.show_reload_indicator(pot, _ammo_pot_timer)
+	hud.show_reload_indicator(pot, -1.0)
 
 
 func _spawn_super_weapon() -> void:
@@ -414,14 +404,6 @@ func _spawn_super_weapon() -> void:
 	pickup.collected.connect(_on_super_weapon_collected)
 	_active_super_weapon = pickup
 	hud.show_boost_indicator(pickup, SUPER_WEAPON_GRACE)
-
-
-func _despawn_ammo_pot() -> void:
-	if _active_ammo_pot and is_instance_valid(_active_ammo_pot):
-		_active_ammo_pot.queue_free()
-	_active_ammo_pot = null
-	_ammo_pot_timer = 0.0
-	hud.hide_reload_indicator()
 
 
 func _despawn_health_potion() -> void:
@@ -441,7 +423,6 @@ func _despawn_super_weapon() -> void:
 
 func _on_ammo_pot_collected() -> void:
 	_active_ammo_pot = null
-	_ammo_pot_timer = 0.0
 	hud.hide_reload_indicator()
 
 

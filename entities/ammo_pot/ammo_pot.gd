@@ -72,6 +72,9 @@ func _try_collect(body: Node) -> void:
 	if not body.has_method("add_ammo"):
 		return
 
+	if body.ammo >= body.MAX_AMMO:
+		return
+
 	_collected = true
 	body.add_ammo()
 	collected.emit()

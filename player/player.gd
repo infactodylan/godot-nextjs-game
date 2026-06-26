@@ -4,6 +4,7 @@ signal health_changed(current: int, maximum: int)
 signal ammo_changed(current: int, maximum: int)
 signal super_weapon_changed(active: bool, seconds_left: float)
 signal died
+signal first_enemy_on_top(enemy: CharacterBody2D)
 
 const SPEED := 300.0
 const JUMP_VELOCITY := -480.0
@@ -30,6 +31,11 @@ const SPRITE_FOOT_Y := 510.0
 const GUN_HAND_OFFSET := Vector2(12.0, -34.0)
 const GUN_BARREL_LENGTH := 26.0
 const FIRE_POSE_TIME := 0.14
+const SHAKE_OFF_SWITCHES := 3
+const SHAKE_OFF_WINDOW := 1.1
+const ENEMY_HALF_WIDTH := 14.0
+const ENEMY_STAND_HEIGHT := 36.0
+const STOMP_TOLERANCE := 14.0
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var facing_direction := 1.0
@@ -50,6 +56,10 @@ var _invincibility_timer := 0.0
 var _stun_timer := 0.0
 var _fire_pose_timer := 0.0
 var _normal_modulate := Color.WHITE
+var _last_nonzero_move_direction := 0.0
+var _direction_switch_count := 0
+var _direction_switch_timer := 0.0
+var _shake_off_hint_triggered := false
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite
@@ -146,9 +156,13 @@ func _physics_process(delta: float) -> void:
 		if not super_weapon_active and Input.is_action_just_pressed("shoot"):
 			_try_shoot()
 
+	var was_falling := velocity.y > 0.0
 	move_and_slide()
+	if was_falling:
+		_check_stomp_enemies()
 	_clamp_to_screen_bounds()
 	if not is_stunned:
+		_update_shake_off(delta, direction)
 		_update_aim_facing()
 	_update_muzzle()
 	_update_animation(is_crouching)
@@ -188,6 +202,120 @@ func _pick_fire_animation(is_crouching: bool) -> String:
 	if abs(velocity.x) > 20.0:
 		return "run_shoot"
 	return "shoot"
+
+
+func _update_shake_off(delta: float, move_direction: float) -> void:
+	var enemies_on_top := _get_enemies_on_top()
+	if enemies_on_top.is_empty():
+		_direction_switch_count = 0
+		_direction_switch_timer = 0.0
+		return
+
+	if not _shake_off_hint_triggered:
+		_shake_off_hint_triggered = true
+		first_enemy_on_top.emit(enemies_on_top[0])
+
+	_direction_switch_timer = maxf(_direction_switch_timer - delta, 0.0)
+	if _direction_switch_timer <= 0.0:
+		_direction_switch_count = 0
+
+	if move_direction == 0.0:
+		return
+
+	var signed_direction := signf(move_direction)
+	if (
+		_last_nonzero_move_direction != 0.0
+		and signed_direction != _last_nonzero_move_direction
+	):
+		_direction_switch_count += 1
+		_direction_switch_timer = SHAKE_OFF_WINDOW
+		if _direction_switch_count >= SHAKE_OFF_SWITCHES:
+			for enemy in enemies_on_top:
+				if is_instance_valid(enemy) and enemy.has_method("die"):
+					enemy.die()
+			_direction_switch_count = 0
+			_direction_switch_timer = 0.0
+
+	_last_nonzero_move_direction = signed_direction
+
+
+func _get_enemies_on_top() -> Array[CharacterBody2D]:
+	var results: Array[CharacterBody2D] = []
+	var player_top := global_position.y - _current_height
+	var player_left := global_position.x - HALF_WIDTH
+	var player_right := global_position.x + HALF_WIDTH
+
+	for node in get_tree().get_nodes_in_group("enemy"):
+		if not node is CharacterBody2D:
+			continue
+		var enemy := node as CharacterBody2D
+		if enemy.has_method("is_active") and not enemy.is_active():
+			continue
+
+		var enemy_left := enemy.global_position.x - ENEMY_HALF_WIDTH
+		var enemy_right := enemy.global_position.x + ENEMY_HALF_WIDTH
+		var x_overlap := enemy_left < player_right and enemy_right > player_left
+		if not x_overlap:
+			continue
+
+		var enemy_feet_y := enemy.global_position.y
+		var feet_on_head := enemy_feet_y <= player_top + 14.0 and enemy_feet_y >= player_top - 26.0
+		if feet_on_head:
+			results.append(enemy)
+
+	return results
+
+
+func _check_stomp_enemies() -> void:
+	var checked: Array[CharacterBody2D] = []
+
+	for i in get_slide_collision_count():
+		var collision := get_slide_collision(i)
+		_try_stomp_enemy(collision.get_collider(), collision.get_normal(), checked)
+
+	var floor_collider := get_floor_collider()
+	if floor_collider:
+		_try_stomp_enemy(floor_collider, Vector2.UP, checked)
+
+
+func _try_stomp_enemy(
+	collider: Object,
+	normal: Vector2,
+	checked: Array[CharacterBody2D]
+) -> void:
+	if collider == null or not collider is CharacterBody2D:
+		return
+
+	var enemy := collider as CharacterBody2D
+	if not enemy.is_in_group("enemy") or enemy in checked:
+		return
+
+	if enemy.has_method("is_active") and not enemy.is_active():
+		return
+
+	if normal.y >= -0.3:
+		return
+
+	if not _is_stomping_enemy(enemy):
+		return
+
+	checked.append(enemy)
+	if enemy.has_method("die"):
+		enemy.die()
+	take_damage(1)
+
+
+func _is_stomping_enemy(enemy: CharacterBody2D) -> bool:
+	var player_feet_y := global_position.y
+	var enemy_top_y := enemy.global_position.y - ENEMY_STAND_HEIGHT
+	if player_feet_y > enemy_top_y + STOMP_TOLERANCE:
+		return false
+
+	var enemy_left := enemy.global_position.x - ENEMY_HALF_WIDTH
+	var enemy_right := enemy.global_position.x + ENEMY_HALF_WIDTH
+	var player_left := global_position.x - HALF_WIDTH
+	var player_right := global_position.x + HALF_WIDTH
+	return enemy_left < player_right and enemy_right > player_left
 
 
 func _clamp_to_screen_bounds() -> void:
