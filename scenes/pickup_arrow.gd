@@ -1,6 +1,7 @@
 extends Control
 
 const EDGE_PADDING := 48.0
+const LABEL_EDGE_PADDING := 12.0
 const ARROW_LENGTH := 56.0
 const ARROW_WIDTH := 34.0
 const HOVER_GAP := 18.0
@@ -155,7 +156,22 @@ func _draw_label(arrow_pos: Vector2, aim_dir: Vector2, target_on_screen: bool) -
 	var label_offset := Vector2(0.0, -ARROW_LENGTH * 0.5 - 10.0)
 	if not target_on_screen:
 		label_offset = -aim_dir * (ARROW_LENGTH * 0.5 + 14.0)
+		if aim_dir.x < -0.2:
+			label_offset.x = absf(label_offset.x)
+		elif aim_dir.x > 0.2:
+			label_offset.x = -absf(label_offset.x) - text_size.x
 	var label_pos := arrow_pos + label_offset - Vector2(text_size.x * 0.5, text_size.y)
+	if not target_on_screen:
+		label_pos.x = clampf(
+			label_pos.x,
+			LABEL_EDGE_PADDING,
+			get_viewport().get_visible_rect().size.x - text_size.x - LABEL_EDGE_PADDING
+		)
+		label_pos.y = clampf(
+			label_pos.y,
+			LABEL_EDGE_PADDING,
+			get_viewport().get_visible_rect().size.y - LABEL_EDGE_PADDING
+		)
 
 	for ox in range(-LABEL_OUTLINE_SIZE, LABEL_OUTLINE_SIZE + 1):
 		for oy in range(-LABEL_OUTLINE_SIZE, LABEL_OUTLINE_SIZE + 1):

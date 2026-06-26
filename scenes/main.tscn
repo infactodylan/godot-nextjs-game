@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://bossgun001" path="res://entities/boss_gun/boss_gun.tscn" id="4_boss"]
 [ext_resource type="Script" uid="uid://dfx0r38xxqeij" path="res://scenes/hud.gd" id="5_hud"]
 [ext_resource type="Script" uid="uid://b21ryxj5ubnwd" path="res://scenes/pickup_arrow.gd" id="6_pickup_arrow"]
+[ext_resource type="PackedScene" uid="uid://duskbg001" path="res://scenes/dusk_background.tscn" id="7_dusk"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(3600, 80)
@@ -28,10 +29,7 @@ script = ExtResource("1_main")
 [node name="MapCamera" type="Camera2D" parent="." unique_id=499401397]
 position = Vector2(1800, 450)
 
-[node name="Background" type="ColorRect" parent="." unique_id=1352225119]
-offset_right = 3600.0
-offset_bottom = 900.0
-color = Color(0.537, 0.812, 0.941, 1)
+[node name="DuskBackground" parent="." instance=ExtResource("7_dusk")]
 
 [node name="Ground" type="StaticBody2D" parent="." unique_id=1351209560]
 position = Vector2(1800, 860)
@@ -46,7 +44,7 @@ offset_left = -1800.0
 offset_top = -40.0
 offset_right = 1800.0
 offset_bottom = 40.0
-color = Color(0.35, 0.55, 0.3, 1)
+color = Color(0.22, 0.18, 0.16, 1)
 
 [node name="Platforms" type="Node2D" parent="." unique_id=1288930003]
 
@@ -64,7 +62,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.45, 0.35, 0.25, 1)
+color = Color(0.32, 0.26, 0.22, 1)
 
 [node name="Platform2" type="StaticBody2D" parent="Platforms" unique_id=2063263756 groups=["platform"]]
 position = Vector2(640, 653)
@@ -80,7 +78,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.45, 0.35, 0.25, 1)
+color = Color(0.32, 0.26, 0.22, 1)
 
 [node name="Platform3" type="StaticBody2D" parent="Platforms" unique_id=1661939379 groups=["platform"]]
 position = Vector2(860, 583)
@@ -96,7 +94,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.45, 0.35, 0.25, 1)
+color = Color(0.32, 0.26, 0.22, 1)
 
 [node name="Platform4" type="StaticBody2D" parent="Platforms" unique_id=537296847 groups=["platform"]]
 position = Vector2(1080, 513)
@@ -112,7 +110,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.55, 0.45, 0.3, 1)
+color = Color(0.36, 0.3, 0.24, 1)
 
 [node name="Platform5" type="StaticBody2D" parent="Platforms" unique_id=1900678590 groups=["platform"]]
 position = Vector2(1500, 653)
@@ -128,7 +126,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.45, 0.35, 0.25, 1)
+color = Color(0.32, 0.26, 0.22, 1)
 
 [node name="Platform6" type="StaticBody2D" parent="Platforms" unique_id=1129112141 groups=["platform"]]
 position = Vector2(1850, 583)
@@ -144,7 +142,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.45, 0.35, 0.25, 1)
+color = Color(0.32, 0.26, 0.22, 1)
 
 [node name="Platform7" type="StaticBody2D" parent="Platforms" unique_id=1761243830 groups=["platform"]]
 position = Vector2(2650, 723)
@@ -160,7 +158,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.45, 0.35, 0.25, 1)
+color = Color(0.32, 0.26, 0.22, 1)
 
 [node name="Platform8" type="StaticBody2D" parent="Platforms" unique_id=332312848 groups=["platform"]]
 position = Vector2(3050, 583)
@@ -176,7 +174,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.45, 0.35, 0.25, 1)
+color = Color(0.32, 0.26, 0.22, 1)
 
 [node name="Platform9" type="StaticBody2D" parent="Platforms" unique_id=1613862612 groups=["platform"]]
 position = Vector2(3350, 513)
@@ -192,7 +190,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.55, 0.45, 0.3, 1)
+color = Color(0.36, 0.3, 0.24, 1)
 
 [node name="Platform10" type="StaticBody2D" parent="Platforms" unique_id=312087564 groups=["platform"]]
 position = Vector2(3500, 723)
@@ -208,7 +206,7 @@ offset_left = -90.0
 offset_top = -8.0
 offset_right = 90.0
 offset_bottom = 24.0
-color = Color(0.5, 0.4, 0.28, 1)
+color = Color(0.34, 0.28, 0.22, 1)
 
 [node name="Enemies" type="Node2D" parent="." unique_id=101524521]
 

@@ -20,6 +20,7 @@ const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
+@onready var dusk_background: Node2D = $DuskBackground
 @onready var hud: CanvasLayer = $HUD
 @onready var boss_gun: Node2D = $BossGun
 @onready var wave1: Node2D = $Enemies/Wave1
@@ -56,6 +57,7 @@ func _ready() -> void:
 	hud.bind_player(player)
 	hud.bind_boss(boss_gun)
 	hud.bind_camera(map_camera)
+	dusk_background.bind_camera(map_camera)
 	hud.configure_resume_countdown(
 		func() -> bool: return _phase == GamePhase.PRE_START,
 		_restore_pre_start_countdown
@@ -128,7 +130,9 @@ func _setup_map_camera() -> void:
 	)
 	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
 	map_camera.zoom = Vector2(zoom_factor, zoom_factor)
-	map_camera.position = player.global_position
+	var half_view := viewport_size / (2.0 * zoom_factor)
+	var initial_y := MAP_SIZE.y * 0.5 if half_view.y >= MAP_SIZE.y * 0.5 else player.global_position.y
+	map_camera.position = Vector2(player.global_position.x, initial_y)
 
 
 func _update_camera_follow() -> void:
@@ -138,7 +142,11 @@ func _update_camera_follow() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var half_view := viewport_size / (2.0 * map_camera.zoom)
 	var target_x := clampf(player.global_position.x, half_view.x, MAP_SIZE.x - half_view.x)
-	var target_y := clampf(player.global_position.y, half_view.y, MAP_SIZE.y - half_view.y)
+	var target_y: float
+	if half_view.y >= MAP_SIZE.y * 0.5:
+		target_y = MAP_SIZE.y * 0.5
+	else:
+		target_y = clampf(player.global_position.y, half_view.y, MAP_SIZE.y - half_view.y)
 	map_camera.position = Vector2(target_x, target_y)
 
 
