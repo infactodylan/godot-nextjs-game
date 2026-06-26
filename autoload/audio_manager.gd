@@ -4,6 +4,7 @@ const MUSIC := preload("res://assets/audio/suspense_music.mp3")
 const PLAYER_GUNSHOT := preload("res://assets/audio/player_gunshot.mp3")
 const BOSS_GUNSHOT := preload("res://assets/audio/boss_gunshot.mp3")
 const SQUISHY_DEATH := preload("res://assets/audio/squishy_death.mp3")
+const PLAYER_RELOAD := preload("res://assets/audio/player_reload.mp3")
 
 var _music_player: AudioStreamPlayer
 var _sfx_players: Array[AudioStreamPlayer] = []
@@ -48,6 +49,10 @@ func play_boss_shoot() -> void:
 
 func play_enemy_death() -> void:
 	_play_sfx(SQUISHY_DEATH)
+
+
+func play_player_reload() -> void:
+	_play_sfx(PLAYER_RELOAD)
 
 
 func _play_sfx(stream: AudioStream) -> void:

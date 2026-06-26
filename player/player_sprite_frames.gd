@@ -1,13 +1,31 @@
 class_name PlayerSpriteFrames
 extends RefCounted
 
-const SHEET := preload("res://assets/player/silas_character_sheet.png")
-const FRAME_W := 128
-const FRAME_H := 186
+const SHEET := preload("res://assets/player/player_character_sheet.png")
+const ROW_HEIGHT := 1105
 
-# Row 0: run right (5 frames). Row 1: run left (unused; we flip). Row 2: actions.
-const ROW_RUN := 0
-const ROW_ACTION := 2
+# Row 0: walk right. Row 1: walk left. Each entry is [x, width] in sheet pixels.
+const FRAMES_RIGHT := [
+	[0, 527],
+	[893, 407],
+	[1641, 372],
+	[2207, 508],
+	[3056, 377],
+	[3693, 403],
+]
+const FRAMES_LEFT := [
+	[0, 403],
+	[663, 377],
+	[1381, 508],
+	[2083, 372],
+	[2796, 407],
+	[3569, 527],
+]
+
+const ROW_RIGHT := 0
+const ROW_LEFT := 1
+const IDLE_RIGHT_COL := 2
+const IDLE_LEFT_COL := 0
 
 
 static func build() -> SpriteFrames:
@@ -18,14 +36,10 @@ static func build() -> SpriteFrames:
 
 	var frames := SpriteFrames.new()
 
-	_add_loop(frames, "idle", sheet, ROW_RUN, [0], 5.0)
-	_add_loop(frames, "run", sheet, ROW_RUN, [0, 1, 2, 3, 4], 10.0)
-	_add_loop(frames, "crouch_enter", sheet, ROW_ACTION, [0, 1, 2], 8.0, false)
-	_add_loop(frames, "crouch", sheet, ROW_ACTION, [2], 5.0)
-	_add_loop(frames, "jump", sheet, ROW_ACTION, [3], 5.0)
-	_add_loop(frames, "fall", sheet, ROW_ACTION, [4], 5.0)
-	_add_loop(frames, "air_aim", sheet, ROW_ACTION, [5], 5.0)
-	_add_loop(frames, "land", sheet, ROW_ACTION, [6], 8.0, false)
+	_add_loop(frames, "idle_right", sheet, ROW_RIGHT, [IDLE_RIGHT_COL], 5.0)
+	_add_loop(frames, "idle_left", sheet, ROW_LEFT, [IDLE_LEFT_COL], 5.0)
+	_add_loop(frames, "run_right", sheet, ROW_RIGHT, [0, 1, 2, 3, 4, 5], 10.0)
+	_add_loop(frames, "run_left", sheet, ROW_LEFT, [0, 1, 2, 3, 4, 5], 10.0)
 
 	return frames
 
@@ -47,7 +61,13 @@ static func _add_loop(
 
 
 static func _atlas(sheet: Texture2D, col: int, row: int) -> AtlasTexture:
+	var frame_data: Array = FRAMES_RIGHT[col] if row == ROW_RIGHT else FRAMES_LEFT[col]
 	var atlas := AtlasTexture.new()
 	atlas.atlas = sheet
-	atlas.region = Rect2(col * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H)
+	atlas.region = Rect2(
+		frame_data[0],
+		row * ROW_HEIGHT,
+		frame_data[1],
+		ROW_HEIGHT
+	)
 	return atlas

@@ -22,8 +22,10 @@ const MAX_AMMO := 6
 const LOW_AMMO_THRESHOLD := 2
 const SUPER_WEAPON_DURATION := 10.0
 const SUPER_MAG_SIZE := 20
-const SPRITE_SCALE := 0.32
-const SPRITE_FEET_Y := -28.0
+const SPRITE_SCALE := 0.051
+const SPRITE_FRAME_HEIGHT := 1105.0
+const SPRITE_FEET_PADDING_RIGHT := 229.0
+const SPRITE_FEET_PADDING_LEFT := 11.0
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var facing_direction := 1.0
@@ -39,8 +41,6 @@ var _jump_buffer_timer := 0.0
 var _current_height := STAND_HEIGHT
 var _shoot_cooldown := 0.0
 var _invincibility_timer := 0.0
-var _was_on_floor := true
-var _crouch_anim_played := false
 var _normal_modulate := Color.WHITE
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -58,7 +58,8 @@ func _ready() -> void:
 		push_error("Player has no sprite animations.")
 	else:
 		animated_sprite.sprite_frames = frames
-		animated_sprite.play("idle")
+		animated_sprite.play("idle_right")
+	_apply_stance(STAND_HEIGHT)
 	health_changed.emit(health, MAX_HEALTH)
 	ammo_changed.emit(ammo, MAX_AMMO)
 
@@ -79,6 +80,10 @@ func _physics_process(delta: float) -> void:
 		elif Input.is_action_pressed("shoot"):
 			_try_shoot_super()
 
+	var direction := Input.get_axis("move_left", "move_right")
+	if direction != 0.0:
+		facing_direction = direction
+
 	var wants_crouch := Input.is_action_pressed("move_down")
 	var target_height := CROUCH_HEIGHT if wants_crouch else STAND_HEIGHT
 	_current_height = move_toward(_current_height, target_height, SQUISH_SPEED * delta * (STAND_HEIGHT - CROUCH_HEIGHT))
@@ -95,9 +100,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		_jump_buffer_timer = max(_jump_buffer_timer - delta, 0.0)
 
-	var direction := Input.get_axis("move_left", "move_right")
 	if direction != 0.0:
-		facing_direction = direction
 		velocity.x = direction * SPEED
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, SPEED)
@@ -116,53 +119,39 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_update_muzzle()
-	_update_animation(is_crouching, wants_crouch)
-
-	if is_on_floor() and not _was_on_floor:
-		animated_sprite.play("land")
-
-	_was_on_floor = is_on_floor()
+	_update_animation(is_crouching)
 
 
-func _update_animation(is_crouching: bool, wants_crouch: bool) -> void:
-	animated_sprite.flip_h = facing_direction < 0.0
+func _idle_animation() -> String:
+	return "idle_right" if facing_direction >= 0.0 else "idle_left"
 
-	if animated_sprite.animation == "land" and animated_sprite.is_playing():
+
+func _run_animation() -> String:
+	return "run_right" if facing_direction >= 0.0 else "run_left"
+
+
+func _update_animation(is_crouching: bool) -> void:
+	animated_sprite.flip_h = false
+	var idle_anim := _idle_animation()
+	var run_anim := _run_animation()
+
+	if not is_on_floor() or is_crouching:
+		if animated_sprite.animation != idle_anim:
+			animated_sprite.play(idle_anim)
 		return
-
-	if not is_on_floor():
-		if velocity.y < -40.0:
-			if animated_sprite.animation != "jump":
-				animated_sprite.play("jump")
-		elif abs(velocity.x) > 40.0:
-			if animated_sprite.animation != "air_aim":
-				animated_sprite.play("air_aim")
-		elif animated_sprite.animation != "fall":
-			animated_sprite.play("fall")
-		return
-
-	if is_crouching:
-		if wants_crouch and not _crouch_anim_played and _current_height > CROUCH_HEIGHT + 2.0:
-			animated_sprite.play("crouch_enter")
-			_crouch_anim_played = true
-		elif animated_sprite.animation != "crouch_enter" or not animated_sprite.is_playing():
-			animated_sprite.play("crouch")
-		return
-
-	_crouch_anim_played = false
 
 	if abs(velocity.x) > 20.0:
-		if animated_sprite.animation != "run":
-			animated_sprite.play("run")
+		if animated_sprite.animation != run_anim:
+			animated_sprite.play(run_anim)
 	else:
-		if animated_sprite.animation != "idle":
-			animated_sprite.play("idle")
+		if animated_sprite.animation != idle_anim:
+			animated_sprite.play(idle_anim)
 
 
 func _update_muzzle() -> void:
 	var half_height := _current_height * 0.5
-	var barrel_x := 34.0 * facing_direction
-	muzzle.position = Vector2(barrel_x, -half_height - 2.0)
+	var barrel_x := 20.0 * facing_direction
+	muzzle.position = Vector2(barrel_x, -half_height - 4.0)
 
 
 func _try_shoot() -> void:
@@ -198,6 +187,7 @@ func _fire_bullet() -> void:
 func add_ammo() -> void:
 	ammo = MAX_AMMO
 	ammo_changed.emit(ammo, MAX_AMMO)
+	AudioManager.play_player_reload()
 
 
 func activate_super_weapon() -> void:
@@ -239,12 +229,19 @@ func die() -> void:
 	died.emit()
 
 
+func _sprite_foot_offset() -> float:
+	var feet_padding := SPRITE_FEET_PADDING_RIGHT if facing_direction >= 0.0 else SPRITE_FEET_PADDING_LEFT
+	return feet_padding * SPRITE_SCALE
+
+
 func _apply_stance(height: float) -> void:
 	var half_height := height * 0.5
+	var height_ratio := height / STAND_HEIGHT
 	var rect_shape := collision_shape.shape as RectangleShape2D
 	rect_shape.size = Vector2(HALF_WIDTH * 2.0, height)
 	collision_shape.position = Vector2(0.0, -half_height)
-	animated_sprite.position.y = -half_height
+	animated_sprite.position.y = -half_height + _sprite_foot_offset() * height_ratio
+	animated_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE * height_ratio)
 
 
 func _update_invincibility_visual() -> void:

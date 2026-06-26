@@ -3,11 +3,12 @@ extends Node2D
 enum GamePhase { PRE_START, WAVE1, SUPER_WEAPON_GRACE, WAVE2, BOSS_FIGHT }
 
 const ENEMY_SPAWN_DELAY := 5.0
-const SUPER_WEAPON_GRACE := 5.0
+const SUPER_WEAPON_GRACE := 8.0
+const AMMO_POT_DURATION := 20.0
 const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(3600.0, 900.0)
 const PLATFORM_TOP_OFFSET := 12.0
-const CAMERA_ZOOM_MULTIPLIER := 1.45
+const CAMERA_ZOOM_MULTIPLIER := 3.3
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -16,7 +17,7 @@ const CAMERA_ZOOM_MULTIPLIER := 1.45
 @onready var wave1: Node2D = $Enemies/Wave1
 @onready var wave2: Node2D = $Enemies/Wave2
 @onready var pickups: Node2D = $Pickups
-@onready var super_weapon_platform: StaticBody2D = $Platforms/Platform10
+@onready var super_weapon_platform: StaticBody2D = $Platforms/Platform5
 
 var _ammo_pot_scene: PackedScene = preload("res://entities/ammo_pot/ammo_pot.tscn")
 var _super_weapon_scene: PackedScene = preload("res://entities/super_weapon/super_weapon_pickup.tscn")
@@ -28,6 +29,7 @@ var _wave1_alive := 0
 var _wave2_alive := 0
 var _active_ammo_pot: Area2D
 var _active_super_weapon: Area2D
+var _ammo_pot_timer := 0.0
 
 
 func _ready() -> void:
@@ -40,6 +42,7 @@ func _ready() -> void:
 
 	hud.bind_player(player)
 	hud.bind_boss(boss_gun)
+	hud.bind_camera(map_camera)
 	hud.start_countdown("Enemies spawn in")
 	player.died.connect(_on_player_died)
 	player.ammo_changed.connect(_on_player_ammo_changed)
@@ -59,9 +62,12 @@ func _process(delta: float) -> void:
 				_start_wave1()
 		GamePhase.SUPER_WEAPON_GRACE:
 			_phase_timer -= delta
-			hud.update_countdown(_phase_timer, "Fight the boss!")
+			hud.update_countdown(_phase_timer, "Wave 2 incoming!")
+			hud.update_boost_timer(_phase_timer)
 			if _phase_timer <= 0.0:
 				_finish_super_weapon_grace()
+
+	_update_pickup_timers(delta)
 
 	if not player.is_dead:
 		_update_camera_follow()
@@ -92,7 +98,9 @@ func _setup_map_camera() -> void:
 		viewport_size.x / MAP_SIZE.x,
 		viewport_size.y / MAP_SIZE.y
 	)
-	var zoom_factor := base_zoom * CAMERA_ZOOM_MULTIPLIER
+	var desired_zoom := base_zoom * CAMERA_ZOOM_MULTIPLIER
+	var max_vertical_zoom := viewport_size.y / MAP_SIZE.y
+	var zoom_factor := minf(desired_zoom, max_vertical_zoom)
 	map_camera.zoom = Vector2(zoom_factor, zoom_factor)
 	map_camera.position = MAP_SIZE * 0.5
 
@@ -135,6 +143,14 @@ func _start_wave1() -> void:
 	_wave1_alive = _spawn_wave(wave1)
 
 
+func _update_pickup_timers(delta: float) -> void:
+	if _active_ammo_pot and is_instance_valid(_active_ammo_pot):
+		_ammo_pot_timer -= delta
+		hud.update_reload_timer(_ammo_pot_timer)
+		if _ammo_pot_timer <= 0.0:
+			_despawn_ammo_pot()
+
+
 func _start_super_weapon_grace() -> void:
 	_phase = GamePhase.SUPER_WEAPON_GRACE
 	_phase_timer = SUPER_WEAPON_GRACE
@@ -144,8 +160,9 @@ func _start_super_weapon_grace() -> void:
 
 func _finish_super_weapon_grace() -> void:
 	_despawn_super_weapon()
+	hud.hide_boost_indicator()
 	hud.hide_countdown()
-	_start_boss_fight()
+	_start_wave2()
 
 
 func _start_wave2() -> void:
@@ -164,11 +181,12 @@ func _on_enemy_defeated(wave_node: Node2D) -> void:
 	if wave_node == wave1:
 		_wave1_alive = max(_wave1_alive - 1, 0)
 		if _wave1_alive == 0 and _phase == GamePhase.WAVE1:
-			_start_wave2()
+			_start_super_weapon_grace()
 	elif wave_node == wave2:
 		_wave2_alive = max(_wave2_alive - 1, 0)
 		if _wave2_alive == 0 and _phase == GamePhase.WAVE2:
-			_start_super_weapon_grace()
+			hud.hide_countdown()
+			_start_boss_fight()
 
 
 func _on_player_ammo_changed(current: int, _maximum: int) -> void:
@@ -191,6 +209,8 @@ func _try_spawn_ammo_pot() -> void:
 	pot.global_position = _platform_pickup_position(platform)
 	pot.collected.connect(_on_ammo_pot_collected)
 	_active_ammo_pot = pot
+	_ammo_pot_timer = AMMO_POT_DURATION
+	hud.show_reload_indicator(pot, _ammo_pot_timer)
 
 
 func _spawn_super_weapon() -> void:
@@ -200,26 +220,33 @@ func _spawn_super_weapon() -> void:
 	pickup.global_position = _platform_pickup_position(super_weapon_platform)
 	pickup.collected.connect(_on_super_weapon_collected)
 	_active_super_weapon = pickup
+	hud.show_boost_indicator(pickup, SUPER_WEAPON_GRACE)
 
 
 func _despawn_ammo_pot() -> void:
 	if _active_ammo_pot and is_instance_valid(_active_ammo_pot):
 		_active_ammo_pot.queue_free()
 	_active_ammo_pot = null
+	_ammo_pot_timer = 0.0
+	hud.hide_reload_indicator()
 
 
 func _despawn_super_weapon() -> void:
 	if _active_super_weapon and is_instance_valid(_active_super_weapon):
 		_active_super_weapon.queue_free()
 	_active_super_weapon = null
+	hud.hide_boost_indicator()
 
 
 func _on_ammo_pot_collected() -> void:
 	_active_ammo_pot = null
+	_ammo_pot_timer = 0.0
+	hud.hide_reload_indicator()
 
 
 func _on_super_weapon_collected() -> void:
 	_active_super_weapon = null
+	hud.hide_boost_indicator()
 
 
 func _get_available_platforms() -> Array[Node2D]:

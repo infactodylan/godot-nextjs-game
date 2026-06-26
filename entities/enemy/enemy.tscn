@@ -14,9 +14,5 @@ script = ExtResource("1_script")
 position = Vector2(0, -18)
 shape = SubResource("RectangleShape2D_enemy")
 
-[node name="Visual" type="ColorRect" parent="."]
-offset_left = -14.0
-offset_top = -36.0
-offset_right = 14.0
-offset_bottom = 0.0
-color = Color(0.9, 0.2, 0.2, 1)
+[node name="AnimatedSprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -18)

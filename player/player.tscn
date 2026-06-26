@@ -17,7 +17,6 @@ shape = SubResource("RectangleShape2D_player")
 
 [node name="AnimatedSprite" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -28)
-scale = Vector2(0.32, 0.32)
 
 [node name="Muzzle" type="Node2D" parent="."]
-position = Vector2(34, -30)
+position = Vector2(20, -32)

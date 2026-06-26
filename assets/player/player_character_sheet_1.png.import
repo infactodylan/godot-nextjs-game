@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://v3p7ggogows5"
-path="res://.godot/imported/reload_item_sheet.png-d09da4af83d1aa7f257b417bfff50c3f.ctex"
+uid="uid://csj3xw63j8rui"
+path="res://.godot/imported/player_character_sheet_1.png-5ff6a806504e3f6188f979956e4ad4f5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ammo_pot/reload_item_sheet.png"
-dest_files=["res://.godot/imported/reload_item_sheet.png-d09da4af83d1aa7f257b417bfff50c3f.ctex"]
+source_file="res://assets/player/player_character_sheet_1.png"
+dest_files=["res://.godot/imported/player_character_sheet_1.png-5ff6a806504e3f6188f979956e4ad4f5.ctex"]
 
 [params]
 

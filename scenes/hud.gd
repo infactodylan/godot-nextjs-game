@@ -1,5 +1,8 @@
 extends CanvasLayer
 
+const RELOAD_COLOR := Color(0.95, 0.12, 0.12, 1.0)
+const BOOST_COLOR := Color(0.82, 0.45, 1.0, 1.0)
+
 @onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
 @onready var ammo_label: Label = $MarginContainer/VBoxContainer/AmmoLabel
 @onready var super_label: Label = $MarginContainer/VBoxContainer/SuperLabel
@@ -7,6 +10,22 @@ extends CanvasLayer
 @onready var status_label: Label = $MarginContainer/VBoxContainer/StatusLabel
 @onready var countdown_label: Label = $CountdownCenter/CountdownVBox/CountdownLabel
 @onready var countdown_subtitle: Label = $CountdownCenter/CountdownVBox/CountdownSubtitle
+@onready var pickup_banner: PanelContainer = $PickupBanner
+@onready var reload_banner_row: HBoxContainer = $PickupBanner/BannerMargin/BannerVBox/ReloadRow
+@onready var reload_banner_label: Label = $PickupBanner/BannerMargin/BannerVBox/ReloadRow/ReloadText
+@onready var reload_timer_label: Label = $PickupBanner/BannerMargin/BannerVBox/ReloadRow/ReloadTimer
+@onready var boost_banner_row: HBoxContainer = $PickupBanner/BannerMargin/BannerVBox/BoostRow
+@onready var boost_banner_label: Label = $PickupBanner/BannerMargin/BannerVBox/BoostRow/BoostText
+@onready var boost_timer_label: Label = $PickupBanner/BannerMargin/BannerVBox/BoostRow/BoostTimer
+@onready var reload_arrow: Control = $PickupGuides/ReloadArrow
+@onready var boost_arrow: Control = $PickupGuides/BoostArrow
+
+var _camera: Camera2D
+var _player: CharacterBody2D
+var _reload_target: Node2D
+var _boost_target: Node2D
+var _reload_time_left := 0.0
+var _boost_time_left := 0.0
 
 
 func _ready() -> void:
@@ -15,9 +34,17 @@ func _ready() -> void:
 	super_label.visible = false
 	countdown_label.visible = false
 	countdown_subtitle.visible = false
+	pickup_banner.visible = false
+	reload_banner_row.visible = false
+	boost_banner_row.visible = false
+
+
+func bind_camera(camera: Camera2D) -> void:
+	_camera = camera
 
 
 func bind_player(player: CharacterBody2D) -> void:
+	_player = player
 	player.health_changed.connect(_on_player_health_changed)
 	player.ammo_changed.connect(_on_player_ammo_changed)
 	player.super_weapon_changed.connect(_on_super_weapon_changed)
@@ -31,6 +58,54 @@ func bind_boss(boss: Node2D) -> void:
 	boss.defeated.connect(_on_boss_defeated)
 	boss_label.visible = true
 	_on_boss_health_changed(boss.health, 20)
+
+
+func show_reload_indicator(target: Node2D, duration: float) -> void:
+	_reload_target = target
+	_reload_time_left = duration
+	reload_banner_row.visible = true
+	reload_banner_label.text = "RELOAD AVAILABLE — GET AMMO"
+	_update_reload_timer_label()
+	_refresh_pickup_banner()
+	if _camera:
+		reload_arrow.activate(target, _camera, RELOAD_COLOR, _player)
+
+
+func update_reload_timer(seconds_left: float) -> void:
+	_reload_time_left = seconds_left
+	_update_reload_timer_label()
+
+
+func hide_reload_indicator() -> void:
+	_reload_target = null
+	_reload_time_left = 0.0
+	reload_banner_row.visible = false
+	reload_arrow.deactivate()
+	_refresh_pickup_banner()
+
+
+func show_boost_indicator(target: Node2D, duration: float) -> void:
+	_boost_target = target
+	_boost_time_left = duration
+	boost_banner_row.visible = true
+	boost_banner_label.text = "SUPER WEAPON BOOST — GRAB IT NOW"
+	_update_boost_timer_label()
+	_refresh_pickup_banner()
+	if _camera:
+		boost_arrow.activate(target, _camera, BOOST_COLOR, _player)
+
+
+func update_boost_timer(seconds_left: float) -> void:
+	_boost_time_left = seconds_left
+	_update_boost_timer_label()
+
+
+func hide_boost_indicator() -> void:
+	_boost_target = null
+	_boost_time_left = 0.0
+	boost_banner_row.visible = false
+	boost_arrow.deactivate()
+	_refresh_pickup_banner()
 
 
 func start_countdown(subtitle: String) -> void:
@@ -63,6 +138,26 @@ func show_restart_message(message: String) -> void:
 	status_label.visible = true
 
 
+func _update_reload_timer_label() -> void:
+	reload_timer_label.text = "%ds" % maxi(ceili(_reload_time_left), 0)
+
+
+func _update_boost_timer_label() -> void:
+	boost_timer_label.text = "%ds" % maxi(ceili(_boost_time_left), 0)
+
+
+func _refresh_pickup_banner() -> void:
+	pickup_banner.visible = reload_banner_row.visible or boost_banner_row.visible
+
+
+func _process(_delta: float) -> void:
+	if _reload_target and is_instance_valid(_reload_target) and _camera and _player:
+		if not reload_arrow.visible:
+			reload_arrow.activate(_reload_target, _camera, RELOAD_COLOR, _player)
+	elif reload_arrow.visible:
+		reload_arrow.deactivate()
+
+
 func _on_player_health_changed(current: int, maximum: int) -> void:
 	health_label.text = "HP: %d/%d" % [current, maximum]
 
@@ -80,6 +175,8 @@ func _on_super_weapon_changed(active: bool, seconds_left: float) -> void:
 
 
 func _on_player_died() -> void:
+	hide_reload_indicator()
+	hide_boost_indicator()
 	show_restart_message("Game Over — press R to restart")
 
 
