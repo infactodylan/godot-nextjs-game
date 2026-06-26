@@ -6,6 +6,7 @@ signal restart_pressed
 const RELOAD_COLOR := Color(0.95, 0.12, 0.12, 1.0)
 const HEALTH_COLOR := Color(0.2, 0.95, 0.35, 1.0)
 const BOOST_COLOR := Color(0.82, 0.45, 1.0, 1.0)
+const RESUME_COUNTDOWN := 5.0
 
 @onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
 @onready var ammo_label: Label = $MarginContainer/VBoxContainer/AmmoLabel
@@ -44,6 +45,10 @@ var _boost_target: Node2D
 var _reload_time_left := 0.0
 var _health_time_left := 0.0
 var _boost_time_left := 0.0
+var _resume_countdown_active := false
+var _resume_countdown_left := 0.0
+var _needs_resume_countdown: Callable
+var _restore_pre_start_countdown: Callable
 
 
 func _ready() -> void:
@@ -71,6 +76,14 @@ func _ready() -> void:
 
 func bind_camera(camera: Camera2D) -> void:
 	_camera = camera
+
+
+func configure_resume_countdown(
+	needs_countdown: Callable,
+	restore_countdown: Callable
+) -> void:
+	_needs_resume_countdown = needs_countdown
+	_restore_pre_start_countdown = restore_countdown
 
 
 func bind_player(player: CharacterBody2D) -> void:
@@ -248,7 +261,7 @@ func show_restart_message(message: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if is_menu_visible():
+	if is_menu_visible() or _resume_countdown_active:
 		return
 	if event.is_action_pressed("pause"):
 		_toggle_pause()
@@ -264,14 +277,45 @@ func _on_mute_pressed() -> void:
 
 
 func _toggle_pause() -> void:
-	if is_menu_visible():
+	if is_menu_visible() or _resume_countdown_active:
 		return
 
-	var paused := not get_tree().paused
-	get_tree().paused = paused
-	pause_overlay.visible = paused
-	pause_button.text = "Resume" if paused else "Pause"
+	if get_tree().paused:
+		if _needs_resume_countdown.is_valid() and _needs_resume_countdown.call():
+			_start_resume_countdown()
+		else:
+			_apply_unpause()
+	else:
+		get_tree().paused = true
+		pause_overlay.visible = true
+		pause_button.text = "Resume"
+		get_viewport().gui_release_focus()
+
+
+func _start_resume_countdown() -> void:
+	_resume_countdown_active = true
+	_resume_countdown_left = RESUME_COUNTDOWN
+	pause_overlay.visible = false
+	pause_button.text = "Pause"
+	start_countdown("Get ready")
+	update_countdown(_resume_countdown_left)
 	get_viewport().gui_release_focus()
+
+
+func _apply_unpause() -> void:
+	get_tree().paused = false
+	pause_overlay.visible = false
+	pause_button.text = "Pause"
+	get_viewport().gui_release_focus()
+
+
+func _finish_resume_countdown() -> void:
+	_resume_countdown_active = false
+	_apply_unpause()
+	if _restore_pre_start_countdown.is_valid():
+		_restore_pre_start_countdown.call()
+	else:
+		hide_countdown()
 
 
 func _disable_button_keyboard_focus() -> void:
@@ -306,7 +350,14 @@ func _refresh_pickup_banner() -> void:
 	)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _resume_countdown_active:
+		_resume_countdown_left -= delta
+		update_countdown(_resume_countdown_left)
+		if _resume_countdown_left <= 0.0:
+			_finish_resume_countdown()
+		return
+
 	if _reload_target and is_instance_valid(_reload_target) and _camera and _player:
 		if not reload_arrow.visible:
 			reload_arrow.activate(_reload_target, _camera, RELOAD_COLOR, _player)

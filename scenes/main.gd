@@ -54,6 +54,10 @@ func _ready() -> void:
 	hud.bind_player(player)
 	hud.bind_boss(boss_gun)
 	hud.bind_camera(map_camera)
+	hud.configure_resume_countdown(
+		func() -> bool: return _phase == GamePhase.PRE_START,
+		_restore_pre_start_countdown
+	)
 	hud.play_pressed.connect(_on_play_pressed)
 	hud.restart_pressed.connect(_on_restart_pressed)
 	player.died.connect(_on_player_died)
@@ -367,6 +371,11 @@ func _on_player_died() -> void:
 func _on_boss_defeated() -> void:
 	_can_restart = true
 	hud.show_victory()
+
+
+func _restore_pre_start_countdown() -> void:
+	hud.start_countdown("Enemies spawn in")
+	hud.update_countdown(_phase_timer)
 
 
 func _on_play_pressed() -> void:
