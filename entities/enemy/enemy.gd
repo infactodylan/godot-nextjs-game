@@ -88,6 +88,7 @@ func _play_attack() -> void:
 
 	_attack_cooldown = ATTACK_COOLDOWN
 	velocity.x = 0.0
+	AudioManager.play_enemy_roar()
 	animated_sprite.play("attack")
 
 

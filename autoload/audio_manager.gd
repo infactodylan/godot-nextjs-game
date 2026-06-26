@@ -3,8 +3,18 @@ extends Node
 const MUSIC := preload("res://assets/audio/suspense_music.mp3")
 const PLAYER_GUNSHOT := preload("res://assets/audio/player_gunshot.mp3")
 const BOSS_GUNSHOT := preload("res://assets/audio/boss_gunshot.mp3")
-const SQUISHY_DEATH := preload("res://assets/audio/squishy_death.mp3")
 const PLAYER_RELOAD := preload("res://assets/audio/player_reload.mp3")
+
+const ZOMBIE_DEATHS: Array[AudioStream] = [
+	preload("res://assets/audio/zombie_death_1.wav"),
+	preload("res://assets/audio/zombie_death_2.wav"),
+	preload("res://assets/audio/zombie_death_3.wav"),
+]
+const ZOMBIE_ROARS: Array[AudioStream] = [
+	preload("res://assets/audio/zombie_roar_1.wav"),
+	preload("res://assets/audio/zombie_roar_2.wav"),
+	preload("res://assets/audio/zombie_roar_3.wav"),
+]
 
 var _music_player: AudioStreamPlayer
 var _sfx_players: Array[AudioStreamPlayer] = []
@@ -63,7 +73,11 @@ func play_boss_shoot() -> void:
 
 
 func play_enemy_death() -> void:
-	_play_sfx(SQUISHY_DEATH)
+	_play_sfx(ZOMBIE_DEATHS[randi() % ZOMBIE_DEATHS.size()])
+
+
+func play_enemy_roar() -> void:
+	_play_sfx(ZOMBIE_ROARS[randi() % ZOMBIE_ROARS.size()])
 
 
 func play_player_reload() -> void:
