@@ -11,7 +11,7 @@
 size = Vector2(3600, 80)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_platform"]
-size = Vector2(180, 24)
+size = Vector2(180, 64)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pickup_banner"]
 content_margin_left = 20.0
@@ -56,13 +56,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform" unique_id=1593648909]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform" unique_id=1947105079]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.45, 0.35, 0.25, 1)
 
 [node name="Platform2" type="StaticBody2D" parent="Platforms" unique_id=2063263756 groups=["platform"]]
@@ -71,13 +72,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform2" unique_id=1327913604]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform2" unique_id=1360125121]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.45, 0.35, 0.25, 1)
 
 [node name="Platform3" type="StaticBody2D" parent="Platforms" unique_id=1661939379 groups=["platform"]]
@@ -86,13 +88,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform3" unique_id=2058968715]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform3" unique_id=479862128]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.45, 0.35, 0.25, 1)
 
 [node name="Platform4" type="StaticBody2D" parent="Platforms" unique_id=537296847 groups=["platform"]]
@@ -101,13 +104,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform4" unique_id=1340795619]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform4" unique_id=352649809]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.55, 0.45, 0.3, 1)
 
 [node name="Platform5" type="StaticBody2D" parent="Platforms" unique_id=1900678590 groups=["platform"]]
@@ -116,13 +120,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform5" unique_id=500844111]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform5" unique_id=731939361]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.45, 0.35, 0.25, 1)
 
 [node name="Platform6" type="StaticBody2D" parent="Platforms" unique_id=1129112141 groups=["platform"]]
@@ -131,13 +136,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform6" unique_id=2141638388]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform6" unique_id=748216243]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.45, 0.35, 0.25, 1)
 
 [node name="Platform7" type="StaticBody2D" parent="Platforms" unique_id=1761243830 groups=["platform"]]
@@ -146,13 +152,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform7" unique_id=1309075556]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform7" unique_id=1475214979]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.45, 0.35, 0.25, 1)
 
 [node name="Platform8" type="StaticBody2D" parent="Platforms" unique_id=332312848 groups=["platform"]]
@@ -161,13 +168,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform8" unique_id=2000323051]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform8" unique_id=130219858]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.45, 0.35, 0.25, 1)
 
 [node name="Platform9" type="StaticBody2D" parent="Platforms" unique_id=1613862612 groups=["platform"]]
@@ -176,13 +184,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform9" unique_id=986022919]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform9" unique_id=865464976]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.55, 0.45, 0.3, 1)
 
 [node name="Platform10" type="StaticBody2D" parent="Platforms" unique_id=312087564 groups=["platform"]]
@@ -191,13 +200,14 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform10" unique_id=865029887]
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Visual" type="ColorRect" parent="Platforms/Platform10" unique_id=1448906889]
 offset_left = -90.0
 offset_top = -12.0
 offset_right = 90.0
-offset_bottom = 12.0
+offset_bottom = 52.0
 color = Color(0.5, 0.4, 0.28, 1)
 
 [node name="Enemies" type="Node2D" parent="." unique_id=101524521]
