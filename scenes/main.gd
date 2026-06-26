@@ -90,7 +90,7 @@ func _process(delta: float) -> void:
 
 	_update_pickup_timers(delta)
 
-	if not player.is_dead:
+	if player.should_camera_follow():
 		_update_camera_follow()
 
 
@@ -132,7 +132,7 @@ func _setup_map_camera() -> void:
 
 
 func _update_camera_follow() -> void:
-	if player.is_dead:
+	if not player.should_camera_follow():
 		return
 
 	var viewport_size := get_viewport().get_visible_rect().size

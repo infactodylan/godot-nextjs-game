@@ -36,6 +36,7 @@ var facing_direction := 1.0
 var health := MAX_HEALTH
 var ammo := MAX_AMMO
 var is_dead := false
+var _death_animation_started := false
 var super_weapon_active := false
 var super_weapon_time_left := 0.0
 var super_mag_ammo := SUPER_MAG_SIZE
@@ -73,6 +74,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		if not _death_animation_started:
+			_process_death_fall(delta)
 		return
 
 	_shoot_cooldown = max(_shoot_cooldown - delta, 0.0)
@@ -321,8 +324,43 @@ func die() -> void:
 		return
 
 	is_dead = true
+	_fire_pose_timer = 0.0
+	if super_weapon_active:
+		_deactivate_super_weapon()
+
+	if is_on_floor():
+		_start_death_animation()
+
+
+func should_camera_follow() -> bool:
+	return not _death_animation_started
+
+
+func _process_death_fall(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, SPEED)
+	if not is_on_floor():
+		velocity.y += gravity * delta
+	else:
+		velocity.y = 0.0
+
+	_current_height = STAND_HEIGHT
+	_apply_stance(STAND_HEIGHT)
+	move_and_slide()
+	animated_sprite.flip_h = facing_direction < 0.0
+	var fall_anim := "fall" if velocity.y > 0.0 or not is_on_floor() else "idle"
+	if animated_sprite.animation != fall_anim:
+		animated_sprite.play(fall_anim)
+
+	if is_on_floor():
+		_start_death_animation()
+
+
+func _start_death_animation() -> void:
+	if _death_animation_started:
+		return
+
+	_death_animation_started = true
 	velocity = Vector2.ZERO
-	set_physics_process(false)
 	animated_sprite.flip_h = facing_direction < 0.0
 	animated_sprite.animation_finished.connect(_on_death_animation_finished, CONNECT_ONE_SHOT)
 	animated_sprite.play("death")
