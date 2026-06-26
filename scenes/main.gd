@@ -378,12 +378,19 @@ func _restore_pre_start_countdown() -> void:
 	hud.update_countdown(_phase_timer)
 
 
-func _on_play_pressed() -> void:
-	hud.hide_menu()
+func _on_get_ready_finished() -> void:
+	get_tree().paused = false
 	player.set_physics_process(true)
 	_phase = GamePhase.PRE_START
 	_phase_timer = ENEMY_SPAWN_DELAY
 	hud.start_countdown("Enemies spawn in")
+	hud.update_countdown(_phase_timer)
+
+
+func _on_play_pressed() -> void:
+	hud.hide_menu()
+	player.set_physics_process(false)
+	hud.start_get_ready_countdown(_on_get_ready_finished)
 
 
 func _on_restart_pressed() -> void:
