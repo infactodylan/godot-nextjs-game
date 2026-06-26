@@ -7,9 +7,10 @@ const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(7800.0, 900.0)
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
-const CAMERA_ZOOM_MULTIPLIER := 3.3
+const CAMERA_ZOOM_MULTIPLIER := 4.29
 const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
 const WASTELANDS_SCENE := "res://scenes/waste_lands.tscn"
+const DEATH_RESTART_META := "death_restart"
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -38,7 +39,6 @@ func _ready() -> void:
 	_setup_map_camera()
 	player.set_physics_process(false)
 	AudioManager.play_village_ambience()
-	_apply_entry_spawn()
 
 	hud.bind_player(player)
 	hud.bind_camera(map_camera)
@@ -50,6 +50,12 @@ func _ready() -> void:
 	player.health_changed.connect(_on_player_health_changed)
 	wasteland_gate.player_entered.connect(_on_wasteland_gate_entered)
 	wasteland_gate.player_exited.connect(_on_wasteland_gate_exited)
+
+	if get_tree().has_meta(DEATH_RESTART_META):
+		get_tree().remove_meta(DEATH_RESTART_META)
+		_start_level_from_beginning()
+	elif get_tree().has_meta("village_spawn_x"):
+		_apply_entry_spawn()
 
 
 func _process(delta: float) -> void:
@@ -238,8 +244,8 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 
 func _on_player_died() -> void:
-	_can_restart = true
-	hud.show_game_over()
+	get_tree().set_meta(DEATH_RESTART_META, true)
+	get_tree().reload_current_scene()
 
 
 func _on_wasteland_gate_entered() -> void:
@@ -282,17 +288,16 @@ func _on_wasteland_gate_exited() -> void:
 	_wasteland_prompt_open = false
 
 
-func _on_get_ready_finished() -> void:
+func _on_play_pressed() -> void:
+	_start_level_from_beginning()
+
+
+func _start_level_from_beginning() -> void:
+	hud.hide_menu()
 	get_tree().paused = false
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_spawn_super_weapon()
-
-
-func _on_play_pressed() -> void:
-	hud.hide_menu()
-	player.set_physics_process(false)
-	hud.start_get_ready_countdown(_on_get_ready_finished)
 
 
 func _on_restart_pressed() -> void:

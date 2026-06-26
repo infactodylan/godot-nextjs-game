@@ -7,8 +7,9 @@ const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(3600.0, 900.0)
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
-const CAMERA_ZOOM_MULTIPLIER := 3.3
+const CAMERA_ZOOM_MULTIPLIER := 4.29
 const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
+const DEATH_RESTART_META := "death_restart"
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -43,6 +44,10 @@ func _ready() -> void:
 	player.died.connect(_on_player_died)
 	player.ammo_changed.connect(_on_player_ammo_changed)
 	player.health_changed.connect(_on_player_health_changed)
+
+	if get_tree().has_meta(DEATH_RESTART_META):
+		get_tree().remove_meta(DEATH_RESTART_META)
+		_start_level_from_beginning()
 
 
 func _process(delta: float) -> void:
@@ -231,21 +236,20 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 
 func _on_player_died() -> void:
-	_can_restart = true
-	hud.show_game_over()
+	get_tree().set_meta(DEATH_RESTART_META, true)
+	get_tree().reload_current_scene()
 
 
-func _on_get_ready_finished() -> void:
+func _on_play_pressed() -> void:
+	_start_level_from_beginning()
+
+
+func _start_level_from_beginning() -> void:
+	hud.hide_menu()
 	get_tree().paused = false
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_spawn_super_weapon()
-
-
-func _on_play_pressed() -> void:
-	hud.hide_menu()
-	player.set_physics_process(false)
-	hud.start_get_ready_countdown(_on_get_ready_finished)
 
 
 func _on_restart_pressed() -> void:

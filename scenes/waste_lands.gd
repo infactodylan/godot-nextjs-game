@@ -22,10 +22,11 @@ const ENEMY_SPAWN_BODY_HALF_WIDTH := 14.0
 const ENEMY_SPAWN_PLATFORM_MARGIN := 10.0
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
-const CAMERA_ZOOM_MULTIPLIER := 3.3
+const CAMERA_ZOOM_MULTIPLIER := 4.29
 const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
 const VILLAGE_SCENE := "res://scenes/the_village.tscn"
 const VILLAGE_RETURN_SPAWN_X := 7380.0
+const DEATH_RESTART_META := "death_restart"
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -65,14 +66,12 @@ func _ready() -> void:
 	_setup_map_camera()
 	_disable_boss()
 	player.set_physics_process(false)
-	_apply_entry_spawn()
 	AudioManager.play_music()
 
 	hud.bind_player(player)
 	hud.bind_boss(boss_gun)
 	hud.bind_camera(map_camera)
 	dusk_background.bind_camera(map_camera)
-	hud.show_start_screen("Waste Lands")
 	hud.configure_resume_countdown(
 		func() -> bool: return _phase == GamePhase.PRE_START,
 		_restore_pre_start_countdown
@@ -85,6 +84,14 @@ func _ready() -> void:
 	boss_gun.defeated.connect(_on_boss_defeated)
 	village_gate.player_entered.connect(_on_village_gate_entered)
 	village_gate.player_exited.connect(_on_village_gate_exited)
+
+	if get_tree().has_meta(DEATH_RESTART_META):
+		get_tree().remove_meta(DEATH_RESTART_META)
+		_start_level_from_beginning()
+	elif get_tree().has_meta("wasteland_spawn_x"):
+		_apply_entry_spawn()
+	else:
+		hud.show_start_screen("Waste Lands")
 
 
 func _apply_entry_spawn() -> void:
@@ -488,8 +495,8 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 
 func _on_player_died() -> void:
-	_can_restart = true
-	hud.show_game_over()
+	get_tree().set_meta(DEATH_RESTART_META, true)
+	get_tree().reload_current_scene()
 
 
 func _on_boss_defeated() -> void:
@@ -503,6 +510,11 @@ func _restore_pre_start_countdown() -> void:
 
 
 func _on_get_ready_finished() -> void:
+	_start_level_from_beginning()
+
+
+func _start_level_from_beginning() -> void:
+	hud.hide_menu()
 	get_tree().paused = false
 	player.set_physics_process(true)
 	_phase = GamePhase.PRE_START
