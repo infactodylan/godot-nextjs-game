@@ -1,6 +1,8 @@
 extends Node
 
 const MUSIC := preload("res://assets/audio/suspense_music.mp3")
+const VILLAGE_DISTANT_AMBIENCE := preload("res://assets/audio/village_distant_ambience.mp3")
+const VILLAGE_EVENING_AMBIENCE := preload("res://assets/audio/village_evening_ambience.mp3")
 const PLAYER_GUNSHOT := preload("res://assets/audio/player_gunshot.mp3")
 const BOSS_GUNSHOT := preload("res://assets/audio/boss_gunshot.mp3")
 const PLAYER_RELOAD := preload("res://assets/audio/player_reload.mp3")
@@ -17,6 +19,8 @@ const ZOMBIE_ROARS: Array[AudioStream] = [
 ]
 
 var _music_player: AudioStreamPlayer
+var _village_distant_player: AudioStreamPlayer
+var _village_evening_player: AudioStreamPlayer
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _sfx_index := 0
 var _muted := false
@@ -27,6 +31,16 @@ func _ready() -> void:
 	_music_player.name = "MusicPlayer"
 	_music_player.volume_db = -8.0
 	add_child(_music_player)
+
+	_village_distant_player = AudioStreamPlayer.new()
+	_village_distant_player.name = "VillageDistantAmbience"
+	_village_distant_player.volume_db = -14.0
+	add_child(_village_distant_player)
+
+	_village_evening_player = AudioStreamPlayer.new()
+	_village_evening_player.name = "VillageEveningAmbience"
+	_village_evening_player.volume_db = -10.0
+	add_child(_village_evening_player)
 
 	for i in 4:
 		var player := AudioStreamPlayer.new()
@@ -48,6 +62,27 @@ func play_music() -> void:
 
 func stop_music() -> void:
 	_music_player.stop()
+
+
+func play_village_ambience() -> void:
+	stop_music()
+	if _village_distant_player.playing and _village_evening_player.playing:
+		return
+
+	var distant := VILLAGE_DISTANT_AMBIENCE.duplicate() as AudioStreamMP3
+	distant.loop = true
+	_village_distant_player.stream = distant
+	_village_distant_player.play()
+
+	var evening := VILLAGE_EVENING_AMBIENCE.duplicate() as AudioStreamMP3
+	evening.loop = true
+	_village_evening_player.stream = evening
+	_village_evening_player.play()
+
+
+func stop_village_ambience() -> void:
+	_village_distant_player.stop()
+	_village_evening_player.stop()
 
 
 func set_muted(muted: bool) -> void:

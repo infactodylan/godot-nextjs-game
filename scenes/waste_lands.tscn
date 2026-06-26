@@ -1,0 +1,481 @@
+[gd_scene format=3 uid="uid://wastelands1"]
+
+[ext_resource type="Script" path="res://scenes/waste_lands.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://bplayer001" path="res://player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://enemy001" path="res://entities/enemy/enemy.tscn" id="3_enemy"]
+[ext_resource type="PackedScene" uid="uid://bossgun001" path="res://entities/boss_gun/boss_gun.tscn" id="4_boss"]
+[ext_resource type="Script" uid="uid://dfx0r38xxqeij" path="res://scenes/hud.gd" id="5_hud"]
+[ext_resource type="Script" uid="uid://b21ryxj5ubnwd" path="res://scenes/pickup_arrow.gd" id="6_pickup_arrow"]
+[ext_resource type="PackedScene" uid="uid://duskbg001" path="res://scenes/dusk_background.tscn" id="7_dusk"]
+[ext_resource type="Script" path="res://scenes/platforms_setup.gd" id="8_platforms"]
+[ext_resource type="Script" path="res://entities/wasteland_gate/wasteland_gate.gd" id="9_gate"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
+size = Vector2(3600, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_platform"]
+size = Vector2(180, 32)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pickup_banner"]
+content_margin_left = 20.0
+content_margin_top = 10.0
+content_margin_right = 20.0
+content_margin_bottom = 10.0
+bg_color = Color(0.05, 0.08, 0.16, 0.88)
+border_width_bottom = 3
+border_color = Color(1, 0.9, 0.35, 0.9)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_village_gate"]
+size = Vector2(160, 140)
+
+[node name="WasteLands" type="Node2D" unique_id=1093160678]
+script = ExtResource("1_main")
+
+[node name="MapCamera" type="Camera2D" parent="." unique_id=499401397]
+position = Vector2(1800, 450)
+
+[node name="DuskBackground" parent="." instance=ExtResource("7_dusk")]
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=1351209560]
+position = Vector2(1800, 860)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=1665793382]
+shape = SubResource("RectangleShape2D_ground")
+
+[node name="Visual" type="ColorRect" parent="Ground" unique_id=514488886]
+offset_left = -1800.0
+offset_top = -40.0
+offset_right = 1800.0
+offset_bottom = 40.0
+color = Color(0.22, 0.18, 0.16, 1)
+
+[node name="Platforms" type="Node2D" parent="." unique_id=1288930003]
+script = ExtResource("8_platforms")
+
+[node name="Platform" type="StaticBody2D" parent="Platforms" unique_id=628012595 groups=["platform"]]
+position = Vector2(420, 723)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform" unique_id=1593648909]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+[node name="Visual" type="ColorRect" parent="Platforms/Platform" unique_id=1947105079]
+offset_left = -90.0
+offset_top = -8.0
+offset_right = 90.0
+offset_bottom = 24.0
+color = Color(0.32, 0.26, 0.22, 1)
+
+[node name="Platform2" type="StaticBody2D" parent="Platforms" unique_id=2063263756 groups=["platform"]]
+position = Vector2(640, 653)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform2" unique_id=1327913604]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Platform3" type="StaticBody2D" parent="Platforms" unique_id=1661939379 groups=["platform"]]
+position = Vector2(860, 583)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform3" unique_id=2058968715]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Platform4" type="StaticBody2D" parent="Platforms" unique_id=537296847 groups=["platform"]]
+position = Vector2(1080, 513)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform4" unique_id=1340795619]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Platform5" type="StaticBody2D" parent="Platforms" unique_id=1900678590 groups=["platform"]]
+position = Vector2(1500, 653)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform5" unique_id=500844111]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Platform6" type="StaticBody2D" parent="Platforms" unique_id=1129112141 groups=["platform"]]
+position = Vector2(1850, 583)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform6" unique_id=2141638388]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Platform7" type="StaticBody2D" parent="Platforms" unique_id=1761243830 groups=["platform"]]
+position = Vector2(2650, 723)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform7" unique_id=1309075556]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Platform8" type="StaticBody2D" parent="Platforms" unique_id=332312848 groups=["platform"]]
+position = Vector2(3050, 583)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform8" unique_id=2000323051]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Platform9" type="StaticBody2D" parent="Platforms" unique_id=1613862612 groups=["platform"]]
+position = Vector2(3350, 513)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform9" unique_id=986022919]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Platform10" type="StaticBody2D" parent="Platforms" unique_id=312087564 groups=["platform"]]
+position = Vector2(3500, 723)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform10" unique_id=865029887]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_platform")
+
+
+[node name="Enemies" type="Node2D" parent="." unique_id=101524521]
+
+[node name="Wave1" type="Node2D" parent="Enemies" unique_id=1593966258]
+
+[node name="Wave2" type="Node2D" parent="Enemies" unique_id=506112275]
+
+[node name="Pickups" type="Node2D" parent="." unique_id=1742652088]
+
+[node name="VillageGate" type="Area2D" parent="."]
+position = Vector2(110, 780)
+script = ExtResource("9_gate")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="VillageGate"]
+shape = SubResource("RectangleShape2D_village_gate")
+
+[node name="BossGun" parent="." unique_id=1816034137 instance=ExtResource("4_boss")]
+position = Vector2(3600, 820)
+
+[node name="Player" parent="." unique_id=1783904878 instance=ExtResource("2_player")]
+position = Vector2(200, 820)
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=2015981725]
+script = ExtResource("5_hud")
+
+[node name="PickupGuides" type="Control" parent="HUD" unique_id=1595965363]
+z_index = 100
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ReloadArrow" type="Control" parent="HUD/PickupGuides" unique_id=1712391894]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_pickup_arrow")
+
+[node name="BoostArrow" type="Control" parent="HUD/PickupGuides" unique_id=214126220]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_pickup_arrow")
+
+[node name="HealthArrow" type="Control" parent="HUD/PickupGuides"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_pickup_arrow")
+
+[node name="PauseOverlay" type="ColorRect" parent="HUD"]
+visible = false
+z_index = 50
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.45)
+
+[node name="PauseLabel" type="Label" parent="HUD/PauseOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -40.0
+offset_right = 200.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 64
+text = "PAUSED"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PickupBanner" type="PanelContainer" parent="HUD" unique_id=573353587]
+visible = false
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 92.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pickup_banner")
+
+[node name="BannerMargin" type="MarginContainer" parent="HUD/PickupBanner" unique_id=2130978043]
+layout_mode = 2
+
+[node name="BannerVBox" type="VBoxContainer" parent="HUD/PickupBanner/BannerMargin" unique_id=188046091]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ReloadRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox" unique_id=2134863506]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="ReloadText" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/ReloadRow" unique_id=650042044]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.9, 0.25, 1)
+theme_override_font_sizes/font_size = 34
+text = "RELOAD AVAILABLE — GET AMMO"
+horizontal_alignment = 1
+
+[node name="ReloadTimer" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/ReloadRow" unique_id=1199822660]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 34
+text = "20s"
+
+[node name="HealthRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="HealthText" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.35, 0.95, 0.45, 1)
+theme_override_font_sizes/font_size = 34
+text = "HEALTH POTION — GET HEALING"
+horizontal_alignment = 1
+
+[node name="HealthTimer" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 34
+text = "20s"
+
+[node name="BoostRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox" unique_id=1524490877]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="BoostText" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/BoostRow" unique_id=803228698]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.88, 0.55, 1, 1)
+theme_override_font_sizes/font_size = 34
+text = "SUPER WEAPON BOOST — GRAB IT NOW"
+horizontal_alignment = 1
+
+[node name="BoostTimer" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/BoostRow" unique_id=1853919113]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 34
+text = "5s"
+
+[node name="CountdownCenter" type="CenterContainer" parent="HUD" unique_id=185703758]
+z_index = 100
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CountdownVBox" type="VBoxContainer" parent="HUD/CountdownCenter" unique_id=1291962135]
+layout_mode = 2
+
+[node name="CountdownSubtitle" type="Label" parent="HUD/CountdownCenter/CountdownVBox" unique_id=1024057138]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 36
+text = "Enemies spawn in"
+horizontal_alignment = 1
+
+[node name="CountdownLabel" type="Label" parent="HUD/CountdownCenter/CountdownVBox" unique_id=356230937]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 120
+text = "5"
+horizontal_alignment = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="HUD" unique_id=868172383]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HUD/MarginContainer" unique_id=1363972661]
+layout_mode = 2
+
+[node name="HealthLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer" unique_id=1357091964]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "HP: 4/4"
+
+[node name="AmmoLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer" unique_id=252682168]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 1, 0.8, 1)
+theme_override_font_sizes/font_size = 28
+text = "Ammo: 6/6"
+
+[node name="SuperLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer" unique_id=1410099857]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.6, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "SUPER: 20s"
+
+[node name="BossLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer" unique_id=983920225]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 28
+text = "Boss HP: 20/20"
+
+[node name="WaveLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.55, 1)
+theme_override_font_sizes/font_size = 28
+text = "Wave 1 — Enemies: 12/12"
+
+[node name="StatusLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer" unique_id=137448714]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 34
+text = "Game Over — press R to restart"
+
+[node name="MenuOverlay" type="ColorRect" parent="HUD"]
+z_index = 300
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.05, 0.12, 0.82)
+
+[node name="MenuCenter" type="CenterContainer" parent="HUD/MenuOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MenuVBox" type="VBoxContainer" parent="HUD/MenuOverlay/MenuCenter"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="MenuTitle" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.35, 1)
+theme_override_font_sizes/font_size = 72
+text = "Waste Lands"
+horizontal_alignment = 1
+
+[node name="MenuMessage" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 32
+text = "Better luck next time."
+horizontal_alignment = 1
+
+[node name="MenuButton" type="Button" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 32
+text = "Play"
+
+[node name="TopRightControls" type="HBoxContainer" parent="HUD"]
+z_index = 301
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 56.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="MuteButton" type="Button" parent="HUD/TopRightControls"]
+custom_minimum_size = Vector2(90, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Mute"
+
+[node name="PauseButton" type="Button" parent="HUD/TopRightControls"]
+custom_minimum_size = Vector2(90, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Pause"

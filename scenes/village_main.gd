@@ -33,7 +33,7 @@ func _ready() -> void:
 	_setup_window_size()
 	_setup_map_camera()
 	player.set_physics_process(false)
-	AudioManager.play_music()
+	AudioManager.play_village_ambience()
 
 	hud.bind_player(player)
 	hud.bind_camera(map_camera)

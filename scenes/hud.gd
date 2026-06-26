@@ -61,6 +61,10 @@ var _pickup_callout: Label
 var _callout_tween: Tween
 var _shake_off_hint: Control
 var _shake_off_hint_shown := false
+var _menu_mode := "start"
+var _menu_secondary_button: Button
+var _choice_yes_callback: Callable
+var _choice_no_callback: Callable
 
 
 func _ready() -> void:
@@ -242,14 +246,18 @@ func show_wave_banner(text: String) -> void:
 	countdown_label.visible = true
 
 
-func show_start_screen() -> void:
-	menu_title.text = "New Game Project"
+func show_start_screen(title: String = "The Village") -> void:
+	_menu_mode = "start"
+	_hide_secondary_button()
+	menu_title.text = title
 	menu_message.visible = false
 	menu_button.text = "Play"
 	menu_overlay.visible = true
 
 
 func show_game_over() -> void:
+	_menu_mode = "restart"
+	_hide_secondary_button()
 	hide_reload_indicator()
 	hide_health_indicator()
 	hide_boost_indicator()
@@ -266,6 +274,8 @@ func show_game_over() -> void:
 
 
 func show_victory() -> void:
+	_menu_mode = "restart"
+	_hide_secondary_button()
 	hide_countdown()
 	hide_wave_status()
 	get_tree().paused = true
@@ -290,6 +300,59 @@ func is_menu_visible() -> bool:
 func show_restart_message(message: String) -> void:
 	status_label.text = message
 	status_label.visible = true
+
+
+func show_choice_prompt(
+	title: String,
+	message: String,
+	yes_text: String,
+	no_text: String,
+	on_yes: Callable,
+	on_no: Callable
+) -> void:
+	_menu_mode = "choice"
+	_choice_yes_callback = on_yes
+	_choice_no_callback = on_no
+	hide_reload_indicator()
+	hide_health_indicator()
+	hide_boost_indicator()
+	hide_countdown()
+	get_tree().paused = true
+	pause_overlay.visible = false
+	pause_button.text = "Pause"
+	menu_title.text = title
+	menu_message.text = message
+	menu_message.visible = true
+	menu_button.text = yes_text
+	_ensure_secondary_button()
+	_menu_secondary_button.text = no_text
+	_menu_secondary_button.visible = true
+	menu_overlay.visible = true
+
+
+func _ensure_secondary_button() -> void:
+	if _menu_secondary_button != null:
+		return
+	_menu_secondary_button = Button.new()
+	_menu_secondary_button.custom_minimum_size = Vector2(220, 56)
+	_menu_secondary_button.add_theme_font_size_override("font_size", 32)
+	_menu_secondary_button.focus_mode = Control.FOCUS_NONE
+	_menu_secondary_button.pressed.connect(_on_menu_secondary_pressed)
+	var vbox: VBoxContainer = menu_button.get_parent()
+	vbox.add_child(_menu_secondary_button)
+	vbox.move_child(_menu_secondary_button, menu_button.get_index() + 1)
+
+
+func _hide_secondary_button() -> void:
+	if _menu_secondary_button:
+		_menu_secondary_button.visible = false
+
+
+func _close_choice_prompt() -> void:
+	_hide_secondary_button()
+	menu_overlay.visible = false
+	get_tree().paused = false
+	get_viewport().gui_release_focus()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -351,10 +414,25 @@ func _disable_button_keyboard_focus() -> void:
 
 
 func _on_menu_button_pressed() -> void:
+	if _menu_mode == "choice":
+		var callback := _choice_yes_callback
+		_close_choice_prompt()
+		if callback.is_valid():
+			callback.call()
+		return
 	if menu_button.text == "Play":
 		play_pressed.emit()
 	else:
 		restart_pressed.emit()
+
+
+func _on_menu_secondary_pressed() -> void:
+	if _menu_mode != "choice":
+		return
+	var callback := _choice_no_callback
+	_close_choice_prompt()
+	if callback.is_valid():
+		callback.call()
 
 
 func _update_reload_arrow_timer() -> void:
