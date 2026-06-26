@@ -2,6 +2,7 @@ extends Node
 
 const MIN_CENTER_SEPARATION := 38.0
 const LANE_Y_TOLERANCE := 72.0
+const SEPARATION_BACKOFF_TIME := 1.0
 
 var _jumping_enemy: WeakRef
 var _spacing_queued := false
@@ -35,10 +36,14 @@ func _process(_delta: float) -> void:
 	if not _spacing_queued:
 		return
 	_spacing_queued = false
-	_enforce_spacing()
+	_check_enemy_overlaps()
 
 
-func _enforce_spacing() -> void:
+func _check_enemy_overlaps() -> void:
+	var player := get_tree().get_first_node_in_group("player") as CharacterBody2D
+	if player == null or not is_instance_valid(player):
+		return
+
 	var enemies: Array[CharacterBody2D] = []
 	for node in get_tree().get_nodes_in_group("enemy"):
 		if not node is CharacterBody2D:
@@ -59,7 +64,7 @@ func _enforce_spacing() -> void:
 	)
 
 	for lane_y in _lane_centers(enemies):
-		_enforce_lane_spacing(enemies, lane_y)
+		_check_lane_overlaps(enemies, lane_y, player)
 
 
 func _lane_centers(enemies: Array[CharacterBody2D]) -> Array[float]:
@@ -80,44 +85,28 @@ func _enemy_in_lane(enemy: CharacterBody2D, lane_y: float) -> bool:
 	return absf(enemy.global_position.y - lane_y) <= LANE_Y_TOLERANCE
 
 
-func _enforce_lane_spacing(enemies: Array[CharacterBody2D], lane_y: float) -> void:
+func _check_lane_overlaps(
+	enemies: Array[CharacterBody2D],
+	lane_y: float,
+	player: CharacterBody2D
+) -> void:
 	var lane_enemies: Array[CharacterBody2D] = []
 	for enemy in enemies:
 		if _enemy_in_lane(enemy, lane_y):
 			lane_enemies.append(enemy)
 
-	for i in range(1, lane_enemies.size()):
-		var left := lane_enemies[i - 1]
-		var right := lane_enemies[i]
-		var min_right_x := left.global_position.x + MIN_CENTER_SEPARATION
-		if right.global_position.x < min_right_x:
-			right.global_position.x = min_right_x
-			if right.velocity.x < 0.0:
-				right.velocity.x = 0.0
+	for i in range(lane_enemies.size()):
+		for j in range(i + 1, lane_enemies.size()):
+			var first := lane_enemies[i]
+			var second := lane_enemies[j]
+			if absf(second.global_position.x - first.global_position.x) >= MIN_CENTER_SEPARATION:
+				continue
 
-
-func blocks_movement(enemy: CharacterBody2D, direction: float) -> bool:
-	if direction == 0.0 or not enemy.is_on_floor():
-		return false
-
-	for node in enemy.get_tree().get_nodes_in_group("enemy"):
-		if node == enemy or not node is CharacterBody2D:
-			continue
-		var other := node as CharacterBody2D
-		if other.has_method("is_active") and not other.is_active():
-			continue
-		if not other.is_on_floor():
-			continue
-		if absf(other.global_position.y - enemy.global_position.y) > LANE_Y_TOLERANCE:
-			continue
-
-		var delta_x := other.global_position.x - enemy.global_position.x
-		if signf(delta_x) != direction:
-			continue
-		if absf(delta_x) < MIN_CENTER_SEPARATION:
-			return true
-
-	return false
+			var first_distance := absf(player.global_position.x - first.global_position.x)
+			var second_distance := absf(player.global_position.x - second.global_position.x)
+			var rear := second if second_distance >= first_distance else first
+			if rear.has_method("begin_separation_backoff"):
+				rear.begin_separation_backoff(SEPARATION_BACKOFF_TIME)
 
 
 func is_lead_enemy(enemy: CharacterBody2D, player: CharacterBody2D) -> bool:

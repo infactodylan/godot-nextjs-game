@@ -15,7 +15,6 @@ const SPRITE_FOOT_Y := 500.0
 const SPRITE_SCALE := STAND_HEIGHT / 400.0
 const HALF_WIDTH := 14.0
 const ATTACK_COOLDOWN := 0.8
-const MIN_ENEMY_SEPARATION := EnemyCoordinator.MIN_CENTER_SEPARATION
 const PLAYER_JUMP_RANGE_X := 160.0
 const PLAYER_JUMP_RANGE_Y := 18.0
 const STEP_UP_THRESHOLD := 8.0
@@ -27,6 +26,7 @@ const EMERGE_DEPTH := 52.0
 const EMERGE_DURATION := 0.6
 const STUCK_MOVE_THRESHOLD := 0.4
 const STUCK_REVERSE_TIME := 1.0
+const SEPARATION_BACKOFF_TIME := EnemyCoordinator.SEPARATION_BACKOFF_TIME
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var _player: CharacterBody2D
@@ -66,6 +66,23 @@ func _find_player() -> void:
 
 func is_active() -> bool:
 	return not _is_dying and not _is_emerging
+
+
+func begin_separation_backoff(duration: float = SEPARATION_BACKOFF_TIME) -> void:
+	if not is_active() or not is_on_floor():
+		return
+	if _player == null or not is_instance_valid(_player) or _player.is_dead:
+		return
+	if _reverse_timer > 0.0:
+		return
+
+	var chase_direction := _get_chase_direction()
+	if chase_direction == 0.0:
+		return
+
+	_forced_direction = -chase_direction
+	_reverse_timer = duration
+	_update_animation(_forced_direction)
 
 
 func begin_emerge(target_position: Vector2) -> void:
@@ -151,7 +168,6 @@ func _physics_process(delta: float) -> void:
 		and _jump_cooldown <= 0.0
 		and _attack_cooldown <= 0.0
 		and chase_direction != 0.0
-		and not EnemyCoordinator.blocks_movement(self, chase_direction)
 		and _wants_jump(chase_direction)
 	):
 		if EnemyCoordinator.is_lead_enemy(self, _player) and EnemyCoordinator.request_jump(self):
@@ -175,7 +191,6 @@ func _physics_process(delta: float) -> void:
 
 	var previous_x := global_position.x
 	move_and_slide()
-	_clamp_velocity_for_spacing(direction)
 	EnemyCoordinator.queue_spacing()
 	if _forced_direction == 0.0:
 		_check_world_stuck(chase_direction, previous_x)
@@ -208,9 +223,6 @@ func _check_world_stuck(chase_direction: float, previous_x: float) -> void:
 		return
 
 	if absf(global_position.x - previous_x) > STUCK_MOVE_THRESHOLD:
-		return
-
-	if EnemyCoordinator.blocks_movement(self, chase_direction) and not _is_world_blocking(chase_direction):
 		return
 
 	if not _is_world_blocking(chase_direction):
@@ -340,63 +352,6 @@ func _get_nearest_blocking_platform(direction: float) -> Node2D:
 			nearest = platform
 
 	return nearest
-
-
-func _clamp_velocity_for_spacing(direction: float) -> void:
-	if direction == 0.0:
-		return
-
-	var hold_speed := direction * PATROL_SPEED
-	if direction < 0.0:
-		var min_x := _min_allowed_x()
-		if min_x > -INF and global_position.x <= min_x + 0.25:
-			velocity.x = hold_speed
-	elif direction > 0.0:
-		var max_x := _max_allowed_x()
-		if max_x < INF and global_position.x >= max_x - 0.25:
-			velocity.x = hold_speed
-
-
-func _min_allowed_x() -> float:
-	if not is_on_floor():
-		return -INF
-
-	var limit := -INF
-	for node in get_tree().get_nodes_in_group("enemy"):
-		if node == self or not node is CharacterBody2D:
-			continue
-		var other := node as CharacterBody2D
-		if other.has_method("is_active") and not other.is_active():
-			continue
-		if not other.is_on_floor():
-			continue
-		if absf(other.global_position.y - global_position.y) > EnemyCoordinator.LANE_Y_TOLERANCE:
-			continue
-		if other.global_position.x >= global_position.x - 0.5:
-			continue
-		limit = maxf(limit, other.global_position.x + MIN_ENEMY_SEPARATION)
-	return limit
-
-
-func _max_allowed_x() -> float:
-	if not is_on_floor():
-		return INF
-
-	var limit := INF
-	for node in get_tree().get_nodes_in_group("enemy"):
-		if node == self or not node is CharacterBody2D:
-			continue
-		var other := node as CharacterBody2D
-		if other.has_method("is_active") and not other.is_active():
-			continue
-		if not other.is_on_floor():
-			continue
-		if absf(other.global_position.y - global_position.y) > EnemyCoordinator.LANE_Y_TOLERANCE:
-			continue
-		if other.global_position.x <= global_position.x + 0.5:
-			continue
-		limit = minf(limit, other.global_position.x - MIN_ENEMY_SEPARATION)
-	return limit
 
 
 func _platform_edge_gap(platform: Node2D, direction: float) -> float:
