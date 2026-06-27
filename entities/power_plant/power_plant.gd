@@ -4,6 +4,7 @@ const HALF_W := 130.0
 const HEIGHT := 168.0
 
 func _ready() -> void:
+	collision_layer = 0
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(HALF_W * 2.0, HEIGHT)
 	var collider := CollisionShape2D.new()

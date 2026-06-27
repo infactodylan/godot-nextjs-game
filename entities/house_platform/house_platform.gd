@@ -20,6 +20,7 @@ const SILO_HALF_W := 48.0
 
 const LEDGE_DEPTH := 34.0
 const LEDGE_THICKNESS := 12.0
+const BUILDING_COLLISION_LAYER := 0
 
 var house_type: HouseType = HouseType.COTTAGE
 var roof_offset: float = COTTAGE_HEIGHT
@@ -28,6 +29,7 @@ var ledges: Array[Dictionary] = []
 
 func configure(type: HouseType) -> void:
 	house_type = type
+	collision_layer = BUILDING_COLLISION_LAYER
 	ledges.clear()
 	_clear_collision_shapes()
 	match house_type:
