@@ -7,15 +7,15 @@ const MAP_SIZE := Vector2(3600.0, 900.0)
 const CAMERA_ZOOM_MULTIPLIER := 4.29
 const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
 const VILLAGE_SCENE := "res://scenes/the_village.tscn"
-const VILLAGE_RETURN_SPAWN_X := 2140.0
 const DEATH_RESTART_META := "death_restart"
-const GROUND_Y := 820.0
-const INTERIOR_ENTRY_SPAWN_X := 260.0
+const RETURN_FROM_PLANT_META := "return_from_plant"
+const GROUND_Y := PlantDoorSpawn.GROUND_Y
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
 @onready var hud: CanvasLayer = $HUD
 @onready var exit_door: Area2D = $ExitDoor
+@onready var interior_visual: Node2D = $InteriorVisual
 
 var _phase := GamePhase.MENU
 var _at_exit_door := false
@@ -26,6 +26,7 @@ func _ready() -> void:
 	_setup_window_size()
 	_setup_map_camera()
 	player.set_physics_process(false)
+	_configure_interior_power()
 	AudioManager.set_tractor_ambience_near(true)
 
 	hud.bind_player(player)
@@ -87,6 +88,16 @@ func _try_exit_to_village() -> bool:
 	return true
 
 
+func _configure_interior_power() -> void:
+	var powered := _resolve_plant_powered()
+	if interior_visual.has_method("set_power_on"):
+		interior_visual.call("set_power_on", powered)
+
+
+func _resolve_plant_powered() -> bool:
+	return GameState.is_plant_power_on()
+
+
 func _setup_window_size() -> void:
 	if OS.has_feature("web"):
 		return
@@ -144,10 +155,23 @@ func _update_camera_follow() -> void:
 
 func _apply_village_entry() -> void:
 	get_tree().remove_meta("power_plant_entry")
-	player.global_position = Vector2(INTERIOR_ENTRY_SPAWN_X, GROUND_Y)
+	_place_player_at_interior_door()
 	hud.hide_menu()
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
+	_snap_camera_to_player()
+
+
+func _place_player_at_interior_door() -> void:
+	player.global_position = PlantDoorSpawn.interior_spawn(exit_door)
+
+
+func _snap_camera_to_player() -> void:
+	if not player.should_camera_follow():
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	var half_view := viewport_size / (2.0 * map_camera.zoom)
+	map_camera.position.x = clampf(player.global_position.x, half_view.x, MAP_SIZE.x - half_view.x)
 
 
 func _on_exit_door_entered() -> void:
@@ -162,7 +186,7 @@ func _exit_to_village() -> void:
 	hud.hide_interact_prompt()
 	_at_exit_door = false
 	AudioManager.set_tractor_ambience_near(false)
-	get_tree().set_meta("village_spawn_x", VILLAGE_RETURN_SPAWN_X)
+	get_tree().set_meta(RETURN_FROM_PLANT_META, true)
 	get_tree().call_deferred("change_scene_to_file", VILLAGE_SCENE)
 
 
@@ -179,9 +203,10 @@ func _on_play_pressed() -> void:
 func _start_level_from_beginning() -> void:
 	hud.hide_menu()
 	get_tree().paused = false
-	player.global_position = Vector2(INTERIOR_ENTRY_SPAWN_X, GROUND_Y)
+	_place_player_at_interior_door()
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
+	_snap_camera_to_player()
 
 
 func _on_restart_pressed() -> void:

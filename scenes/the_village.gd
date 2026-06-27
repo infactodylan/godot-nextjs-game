@@ -12,6 +12,8 @@ const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
 const WASTELANDS_SCENE := "res://scenes/waste_lands.tscn"
 const POWER_PLANT_SCENE := "res://scenes/power_plant.tscn"
 const DEATH_RESTART_META := "death_restart"
+const RETURN_FROM_PLANT_META := "return_from_plant"
+const GROUND_Y := PlantDoorSpawn.GROUND_Y
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -36,7 +38,6 @@ var _health_potion_timer := 0.0
 var _wasteland_prompt_open := false
 var _wasteland_gate_armed := true
 var _at_power_plant_door := false
-var _power_blackout_triggered := false
 
 
 func _ready() -> void:
@@ -45,7 +46,7 @@ func _ready() -> void:
 	player.set_physics_process(false)
 	AudioManager.play_village_ambience()
 	AudioManager.reset_tractor_ambience()
-	AudioManager.set_tractor_ambience_power_on(true)
+	_apply_persisted_plant_power()
 
 	hud.bind_player(player)
 	hud.bind_camera(map_camera)
@@ -64,7 +65,7 @@ func _ready() -> void:
 	if get_tree().has_meta(DEATH_RESTART_META):
 		get_tree().remove_meta(DEATH_RESTART_META)
 		call_deferred("_start_level_from_beginning")
-	elif get_tree().has_meta("village_spawn_x"):
+	elif get_tree().has_meta("village_spawn_x") or get_tree().has_meta(RETURN_FROM_PLANT_META):
 		_apply_entry_spawn()
 
 
@@ -329,15 +330,29 @@ func _go_to_wastelands() -> void:
 
 
 func _apply_entry_spawn() -> void:
-	if not get_tree().has_meta("village_spawn_x"):
+	var spawn_x: float
+	if get_tree().has_meta(RETURN_FROM_PLANT_META):
+		get_tree().remove_meta(RETURN_FROM_PLANT_META)
+		spawn_x = PlantDoorSpawn.exterior_spawn(power_plant_door).x
+	elif get_tree().has_meta("village_spawn_x"):
+		spawn_x = get_tree().get_meta("village_spawn_x")
+		get_tree().remove_meta("village_spawn_x")
+	else:
 		return
-	player.global_position.x = get_tree().get_meta("village_spawn_x")
-	player.global_position.y = 820.0
-	get_tree().remove_meta("village_spawn_x")
+	player.global_position = Vector2(spawn_x, GROUND_Y)
 	hud.hide_menu()
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
+	_snap_camera_to_player()
 	_sync_power_plant_door_prompt()
+
+
+func _snap_camera_to_player() -> void:
+	if not player.should_camera_follow():
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	var half_view := viewport_size / (2.0 * map_camera.zoom)
+	map_camera.position.x = clampf(player.global_position.x, half_view.x, MAP_SIZE.x - half_view.x)
 
 
 func _stay_in_village() -> void:
@@ -349,11 +364,17 @@ func _on_wasteland_gate_exited() -> void:
 	_wasteland_prompt_open = false
 
 
+func _apply_persisted_plant_power() -> void:
+	if GameState.is_plant_power_on():
+		_set_village_lights(true)
+	else:
+		_set_village_lights(false)
+
+
 func _on_courtyard_entered() -> void:
-	if _power_blackout_triggered or _phase != GamePhase.PLAYING:
+	if GameState.has_plant_blackout_triggered() or _phase != GamePhase.PLAYING:
 		return
-	_power_blackout_triggered = true
-	AudioManager.set_tractor_ambience_power_on(false)
+	GameState.trigger_plant_blackout()
 	AudioManager.play_power_down()
 	AudioManager.play_electric_zap()
 	_flicker_out_village_lights()

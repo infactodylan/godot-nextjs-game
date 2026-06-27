@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 AudioManager="*res://autoload/audio_manager.gd"
 EnemyCoordinator="*res://autoload/enemy_coordinator.gd"
+GameState="*res://autoload/game_state.gd"
 
 [display]
 

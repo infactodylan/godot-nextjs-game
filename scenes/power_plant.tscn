@@ -91,7 +91,7 @@ script = ExtResource("8_interact_zone")
 shape = SubResource("RectangleShape2D_exit_door")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
-position = Vector2(260, 820)
+position = Vector2(218, 820)
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("5_hud")

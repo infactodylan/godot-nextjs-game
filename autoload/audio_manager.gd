@@ -34,7 +34,6 @@ var _sfx_index := 0
 var _muted := false
 var _tractor_player: AudioStreamPlayer
 var _tractor_current_db := TRACTOR_SILENT_DB
-var _tractor_power_on := false
 var _tractor_player_near := false
 
 
@@ -69,7 +68,7 @@ func _ready() -> void:
 
 
 func _get_tractor_target_db() -> float:
-	if not _tractor_power_on:
+	if not GameState.is_plant_power_on():
 		return TRACTOR_SILENT_DB
 	if _tractor_player_near:
 		return TRACTOR_NEAR_DB
@@ -170,7 +169,11 @@ func play_electric_zap() -> void:
 
 
 func set_tractor_ambience_power_on(on: bool) -> void:
-	_tractor_power_on = on
+	GameState.set_plant_power_on(on)
+
+
+func is_plant_power_on() -> bool:
+	return GameState.is_plant_power_on()
 
 
 func set_tractor_ambience_near(near: bool) -> void:
@@ -178,7 +181,6 @@ func set_tractor_ambience_near(near: bool) -> void:
 
 
 func reset_tractor_ambience() -> void:
-	_tractor_power_on = false
 	_tractor_player_near = false
 	_tractor_current_db = TRACTOR_SILENT_DB
 	_tractor_player.stop()
