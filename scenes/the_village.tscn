@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scenes/village_sky_backdrop.gd" id="13_sky_backdrop"]
 [ext_resource type="Script" path="res://entities/village_courtyard/village_courtyard.gd" id="14_courtyard"]
 [ext_resource type="Script" path="res://entities/power_plant/power_plant_ambience_zone.gd" id="15_plant_ambience"]
+[ext_resource type="Script" path="res://entities/interact_zone/interact_zone.gd" id="16_interact_zone"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(7800, 80)
@@ -28,6 +29,9 @@ size = Vector2(1300, 180)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_plant_ambience"]
 size = Vector2(900, 320)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_plant_door"]
+size = Vector2(220, 160)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pickup_banner"]
 content_margin_left = 20.0
@@ -258,6 +262,14 @@ script = ExtResource("11_power_plant")
 
 [node name="Visual" type="Node2D" parent="PowerPlant" unique_id=71352069]
 script = ExtResource("12_power_plant_visual")
+
+[node name="EntryDoor" type="Area2D" parent="PowerPlant"]
+position = Vector2(-48, -36)
+script = ExtResource("16_interact_zone")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PowerPlant/EntryDoor"]
+position = Vector2(48, -12)
+shape = SubResource("RectangleShape2D_plant_door")
 
 [node name="PowerPlantAmbienceZone" type="Area2D" parent="."]
 position = Vector2(2280, 760)

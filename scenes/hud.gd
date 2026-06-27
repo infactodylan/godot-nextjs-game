@@ -14,6 +14,7 @@ const BOOST_ARROW_LABEL := "SUPER WEAPON"
 const RELOAD_CALLOUT_TEXT := "Reload available — get ammo!"
 const HEALTH_CALLOUT_TEXT := "Health potion — get healing!"
 const BOOST_CALLOUT_TEXT := "Super weapon boost — grab it now!"
+const INTERACT_PROMPT_COLOR := Color(1.0, 0.95, 0.72, 1.0)
 
 @onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
 @onready var ammo_label: Label = $MarginContainer/VBoxContainer/AmmoLabel
@@ -58,6 +59,7 @@ var _get_ready_callback: Callable
 var _needs_resume_countdown: Callable
 var _restore_pre_start_countdown: Callable
 var _pickup_callout: Label
+var _interact_prompt: Label
 var _callout_tween: Tween
 var _shake_off_hint: Control
 var _shake_off_hint_shown := false
@@ -89,6 +91,7 @@ func _ready() -> void:
 	menu_button.pressed.connect(_on_menu_button_pressed)
 	_disable_button_keyboard_focus()
 	_setup_pickup_callout()
+	_setup_interact_prompt()
 	_setup_shake_off_hint()
 	show_start_screen()
 
@@ -246,7 +249,17 @@ func show_wave_banner(text: String) -> void:
 	countdown_label.visible = true
 
 
+func show_interact_prompt(message: String) -> void:
+	_interact_prompt.text = message
+	_interact_prompt.visible = true
+
+
+func hide_interact_prompt() -> void:
+	_interact_prompt.visible = false
+
+
 func show_start_screen(title: String = "The Village") -> void:
+	hide_interact_prompt()
 	_menu_mode = "start"
 	_hide_secondary_button()
 	menu_title.text = title
@@ -310,6 +323,7 @@ func show_choice_prompt(
 	on_yes: Callable,
 	on_no: Callable
 ) -> void:
+	hide_interact_prompt()
 	_menu_mode = "choice"
 	_choice_yes_callback = on_yes
 	_choice_no_callback = on_no
@@ -453,6 +467,23 @@ func _update_health_arrow_timer() -> void:
 func _update_boost_arrow_timer() -> void:
 	if boost_arrow.visible:
 		boost_arrow.set_timer_text("%ds" % maxi(ceili(_boost_time_left), 0))
+
+
+func _setup_interact_prompt() -> void:
+	_interact_prompt = Label.new()
+	_interact_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_interact_prompt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_interact_prompt.add_theme_font_size_override("font_size", 34)
+	_interact_prompt.add_theme_color_override("font_color", INTERACT_PROMPT_COLOR)
+	_interact_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_interact_prompt.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_interact_prompt.offset_left = -420.0
+	_interact_prompt.offset_top = -96.0
+	_interact_prompt.offset_right = 420.0
+	_interact_prompt.offset_bottom = -24.0
+	_interact_prompt.z_index = 108
+	_interact_prompt.visible = false
+	add_child(_interact_prompt)
 
 
 func _setup_pickup_callout() -> void:

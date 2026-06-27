@@ -10,6 +10,7 @@ const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
 const CAMERA_ZOOM_MULTIPLIER := 4.29
 const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
 const WASTELANDS_SCENE := "res://scenes/waste_lands.tscn"
+const POWER_PLANT_SCENE := "res://scenes/power_plant.tscn"
 const DEATH_RESTART_META := "death_restart"
 
 @onready var player: CharacterBody2D = $Player
@@ -20,6 +21,7 @@ const DEATH_RESTART_META := "death_restart"
 @onready var super_weapon_platform: StaticBody2D = $Platforms/Platform5
 @onready var wasteland_gate: Area2D = $WastelandGate
 @onready var courtyard_gate: Area2D = $CourtyardGate
+@onready var power_plant_door: Area2D = $PowerPlant/EntryDoor
 
 var _ammo_pot_scene: PackedScene = preload("res://entities/ammo_pot/ammo_pot.tscn")
 var _health_potion_scene: PackedScene = preload("res://entities/health_potion/health_potion.tscn")
@@ -33,6 +35,7 @@ var _active_super_weapon: Area2D
 var _health_potion_timer := 0.0
 var _wasteland_prompt_open := false
 var _wasteland_gate_armed := true
+var _at_power_plant_door := false
 var _power_blackout_triggered := false
 
 
@@ -55,6 +58,8 @@ func _ready() -> void:
 	wasteland_gate.player_entered.connect(_on_wasteland_gate_entered)
 	wasteland_gate.player_exited.connect(_on_wasteland_gate_exited)
 	courtyard_gate.player_entered_courtyard.connect(_on_courtyard_entered)
+	power_plant_door.player_entered.connect(_on_power_plant_door_entered)
+	power_plant_door.player_exited.connect(_on_power_plant_door_exited)
 
 	if get_tree().has_meta(DEATH_RESTART_META):
 		get_tree().remove_meta(DEATH_RESTART_META)
@@ -69,6 +74,7 @@ func _process(delta: float) -> void:
 		return
 
 	_update_pickup_timers(delta)
+	_sync_power_plant_door_prompt()
 
 	if player.should_camera_follow():
 		_update_camera_follow()
@@ -255,6 +261,52 @@ func _on_player_died() -> void:
 	get_tree().call_deferred("reload_current_scene")
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("interact"):
+		return
+	if _try_power_plant_entry():
+		get_viewport().set_input_as_handled()
+
+
+func _is_at_power_plant_door() -> bool:
+	return power_plant_door.is_player_inside(player)
+
+
+func _sync_power_plant_door_prompt() -> void:
+	var at_door := _is_at_power_plant_door()
+	if at_door and _phase == GamePhase.PLAYING and not hud.is_menu_visible():
+		if not _at_power_plant_door:
+			_at_power_plant_door = true
+			hud.show_interact_prompt("Press E to enter the power plant")
+	elif _at_power_plant_door:
+		_at_power_plant_door = false
+		hud.hide_interact_prompt()
+
+
+func _try_power_plant_entry() -> bool:
+	if not _is_at_power_plant_door() or _phase != GamePhase.PLAYING:
+		return false
+	if hud.is_menu_visible():
+		return false
+	_enter_power_plant()
+	return true
+
+
+func _on_power_plant_door_entered() -> void:
+	_sync_power_plant_door_prompt()
+
+
+func _on_power_plant_door_exited() -> void:
+	_sync_power_plant_door_prompt()
+
+
+func _enter_power_plant() -> void:
+	hud.hide_interact_prompt()
+	_at_power_plant_door = false
+	get_tree().set_meta("power_plant_entry", true)
+	get_tree().call_deferred("change_scene_to_file", POWER_PLANT_SCENE)
+
+
 func _on_wasteland_gate_entered() -> void:
 	if not _wasteland_gate_armed or _wasteland_prompt_open or _phase != GamePhase.PLAYING:
 		return
@@ -285,6 +337,7 @@ func _apply_entry_spawn() -> void:
 	hud.hide_menu()
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
+	_sync_power_plant_door_prompt()
 
 
 func _stay_in_village() -> void:
@@ -351,6 +404,7 @@ func _start_level_from_beginning() -> void:
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_spawn_super_weapon()
+	_sync_power_plant_door_prompt()
 
 
 func _on_restart_pressed() -> void:
