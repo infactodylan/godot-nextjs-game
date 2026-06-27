@@ -34,15 +34,31 @@
 - NPC conversations (or environmental notes) explaining the plant's importance.
 
 ### Must include
-- [ ] Power plant exterior or access point
+- [x] Power plant exterior or access point
 - [ ] At least one NPC or signpost explaining the engineer's role
-- [ ] Trigger to transition to Level 2 (plant interior / investigation)
+- [x] Trigger to transition to Level 2 (plant interior / investigation)
+
+### Implemented so far
+- **Village map** — west residential strip, power plant on the river, east village, courthouse courtyard, farmland, and wasteland gate at the far east (`scenes/the_village.tscn`).
+- **Houses & buildings** — procedural house visuals (cottages, houses, barn, silo, courthouse); player walks through building art without wall collision; cars and street signs still block in other maps.
+- **Power plant exterior** — river channel, intake pipes, lit windows, and turbine set piece at `x ≈ 2280` (`entities/power_plant/power_plant_visual.gd`).
+- **Enter Level 2** — `E` prompt at the plant door (`PowerPlant/EntryDoor`); loads `scenes/power_plant.tscn`; player spawns just inside the interior door on entry and just outside the exterior door on return (`PlantDoorSpawn`).
+- **Interact input** — `interact` action (E) and HUD prompt (`Press E to enter the power plant` / exit variant).
+- **Courtyard blackout** — entering the courthouse courtyard triggers a village-wide power-down (lights flicker out, SFX); sets `GameState.plant_power_on = false`.
+- **Persisted power state** — `GameState` autoload keeps plant on/off across village ↔ plant scene changes; interior and village lights respect the same flag.
+- **Core player kit** — move, jump, crouch, shoot, pickups (ammo pot, health potion, super weapon on a village platform).
+- **Side exit** — optional prompt to leave for the wastelands (`scenes/waste_lands.tscn`) at the east gate; return spawn back into the village is supported.
+
+### Still needed
+- NPC, signpost, or log explaining the engineer’s role and the plant failure.
+- Story trigger or dialogue sending the player to investigate (beyond the physical door).
+- Tutorial copy for movement/interact if we want a formal onboarding beat.
 
 ### Unlocks
 - Base movement kit (no gadgets yet)
 
 ### Exit
-→ Level 2: Power Plant
+→ Level 2: Power Plant (`scenes/power_plant.tscn` via plant door)
 
 ---
 

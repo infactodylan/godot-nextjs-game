@@ -5,6 +5,7 @@ const FLOOR_Y := 820.0
 const CEILING_Y := 120.0
 
 var power_on := true
+var diagnostics_complete := false
 var _turbine_phase := 0.0
 var _pump_phase := 0.0
 var _belt_phase := 0.0
@@ -13,7 +14,7 @@ var _panel_phase := 0.0
 
 
 func _ready() -> void:
-	set_process(true)
+	set_process(power_on)
 	queue_redraw()
 
 
@@ -21,6 +22,16 @@ func set_power_on(on: bool) -> void:
 	power_on = on
 	set_process(on)
 	queue_redraw()
+
+
+func set_diagnostics_complete(complete: bool) -> void:
+	diagnostics_complete = complete
+	queue_redraw()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED and is_visible_in_tree():
+		queue_redraw()
 
 
 func _process(delta: float) -> void:
@@ -176,7 +187,31 @@ func _draw_control_bay() -> void:
 	var panel_x := 430.0
 	var panel_y := FLOOR_Y - 170.0
 	draw_rect(Rect2(panel_x, panel_y, 180.0, 170.0), Color(0.26, 0.25, 0.28) if power_on else Color(0.14, 0.13, 0.15))
-	draw_rect(Rect2(panel_x + 14.0, panel_y + 18.0, 152.0, 92.0), Color(0.1, 0.12, 0.14) if power_on else Color(0.05, 0.05, 0.06))
+	var screen := Color(0.1, 0.12, 0.14) if power_on else Color(0.05, 0.05, 0.06)
+	if not power_on and not diagnostics_complete:
+		screen = Color(0.06, 0.07, 0.08)
+	draw_rect(Rect2(panel_x + 14.0, panel_y + 18.0, 152.0, 92.0), screen)
+	if not power_on and not diagnostics_complete:
+		_draw_diagnostic_grid(panel_x + 20.0, panel_y + 24.0)
+	elif not power_on and diagnostics_complete:
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(panel_x + 22.0, panel_y + 58.0),
+			"FAULT LOG",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			16,
+			Color(0.52, 0.58, 0.62)
+		)
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(panel_x + 22.0, panel_y + 78.0),
+			"REPAIRS REQ.",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			14,
+			Color(0.42, 0.46, 0.48)
+		)
 	for i in 6:
 		var lamp_x := panel_x + 24.0 + (i % 3) * 44.0
 		var lamp_y := panel_y + 130.0 + floori(i / 3.0) * 18.0
@@ -185,6 +220,37 @@ func _draw_control_bay() -> void:
 			var blink := sin(_panel_phase + i * 0.8) > 0.0
 			lamp_color = Color(0.35, 0.92, 0.45) if blink else Color(0.18, 0.55, 0.28)
 		draw_circle(Vector2(lamp_x, lamp_y), 5.0, lamp_color)
+
+
+func _draw_diagnostic_grid(origin_x: float, origin_y: float) -> void:
+	const GRID := 3
+	var preview: Array[int] = [1, 4, 7, 2, 0, 8, 3, 5, 6]
+	var cell := 22.0
+	var gap := 2.0
+	var tile_colors: Array[Color] = [
+		Color(0.22, 0.21, 0.23),
+		Color(0.26, 0.25, 0.27),
+		Color(0.2, 0.22, 0.24),
+	]
+	for row in GRID:
+		for col in GRID:
+			var index: int = row * GRID + col
+			var value: int = preview[index]
+			var x := origin_x + col * (cell + gap)
+			var y := origin_y + row * (cell + gap)
+			if value == 0:
+				draw_rect(Rect2(x, y, cell, cell), Color(0.07, 0.065, 0.06))
+				continue
+			draw_rect(Rect2(x, y, cell, cell), tile_colors[(value - 1) % tile_colors.size()])
+			draw_string(
+				ThemeDB.fallback_font,
+				Vector2(x + 6.0, y + 16.0),
+				str(value),
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				11,
+				Color(0.62, 0.64, 0.68)
+			)
 
 
 func _draw_broken_component() -> void:

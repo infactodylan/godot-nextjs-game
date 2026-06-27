@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://b21ryxj5ubnwd" path="res://scenes/pickup_arrow.gd" id="6_pickup_arrow"]
 [ext_resource type="Script" path="res://entities/power_plant/power_plant_interior_visual.gd" id="7_interior_visual"]
 [ext_resource type="Script" path="res://entities/interact_zone/interact_zone.gd" id="8_interact_zone"]
+[ext_resource type="Script" path="res://scenes/slide_puzzle_overlay.gd" id="9_slide_puzzle"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(3600, 80)
@@ -30,6 +31,9 @@ content_margin_bottom = 10.0
 bg_color = Color(0.05, 0.08, 0.16, 0.88)
 border_width_bottom = 3
 border_color = Color(1, 0.9, 0.35, 0.9)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_diagnostic"]
+size = Vector2(160, 140)
 
 [node name="PowerPlant" type="Node2D"]
 script = ExtResource("1_main")
@@ -90,8 +94,29 @@ script = ExtResource("8_interact_zone")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ExitDoor"]
 shape = SubResource("RectangleShape2D_exit_door")
 
+[node name="DiagnosticConsole" type="Area2D" parent="."]
+position = Vector2(520, 720)
+script = ExtResource("8_interact_zone")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DiagnosticConsole"]
+shape = SubResource("RectangleShape2D_diagnostic")
+
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(218, 820)
+
+[node name="PuzzleLayer" type="CanvasLayer" parent="."]
+layer = 90
+visible = false
+
+[node name="SlidePuzzle" type="Control" parent="PuzzleLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+visible = false
+script = ExtResource("9_slide_puzzle")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("5_hud")

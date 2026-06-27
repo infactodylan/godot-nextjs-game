@@ -16,17 +16,14 @@ const DEATH_RESTART_META := "death_restart"
 @onready var village_background: Node2D = $VillageBackground
 @onready var hud: CanvasLayer = $HUD
 @onready var pickups: Node2D = $Pickups
-@onready var super_weapon_platform: StaticBody2D = $Platforms/Platform5
 
 var _ammo_pot_scene: PackedScene = preload("res://entities/ammo_pot/ammo_pot.tscn")
 var _health_potion_scene: PackedScene = preload("res://entities/health_potion/health_potion.tscn")
-var _super_weapon_scene: PackedScene = preload("res://entities/super_weapon/super_weapon_pickup.tscn")
 
 var _can_restart := false
 var _phase := GamePhase.MENU
 var _active_ammo_pot: Area2D
 var _active_health_potion: Area2D
-var _active_super_weapon: Area2D
 var _health_potion_timer := 0.0
 
 
@@ -169,29 +166,12 @@ func _try_spawn_ammo_pot() -> void:
 	hud.show_reload_indicator(pot, -1.0)
 
 
-func _spawn_super_weapon() -> void:
-	_despawn_super_weapon()
-	var pickup := _super_weapon_scene.instantiate() as Area2D
-	pickups.add_child(pickup)
-	pickup.global_position = _platform_pickup_position(super_weapon_platform)
-	pickup.collected.connect(_on_super_weapon_collected)
-	_active_super_weapon = pickup
-	hud.show_boost_indicator(pickup, -1.0)
-
-
 func _despawn_health_potion() -> void:
 	if _active_health_potion and is_instance_valid(_active_health_potion):
 		_active_health_potion.queue_free()
 	_active_health_potion = null
 	_health_potion_timer = 0.0
 	hud.hide_health_indicator()
-
-
-func _despawn_super_weapon() -> void:
-	if _active_super_weapon and is_instance_valid(_active_super_weapon):
-		_active_super_weapon.queue_free()
-	_active_super_weapon = null
-	hud.hide_boost_indicator()
 
 
 func _on_ammo_pot_collected() -> void:
@@ -205,17 +185,9 @@ func _on_health_potion_collected() -> void:
 	hud.hide_health_indicator()
 
 
-func _on_super_weapon_collected() -> void:
-	_active_super_weapon = null
-	hud.hide_boost_indicator()
-
-
 func _get_available_platforms() -> Array[Node2D]:
 	var platforms: Array[Node2D] = []
 	for node in get_tree().get_nodes_in_group("platform"):
-		if _active_super_weapon and is_instance_valid(_active_super_weapon):
-			if node.global_position.distance_to(_active_super_weapon.global_position) < 40.0:
-				continue
 		if _active_health_potion and is_instance_valid(_active_health_potion):
 			if node.global_position.distance_to(_active_health_potion.global_position) < 40.0:
 				continue
@@ -250,7 +222,6 @@ func _start_level_from_beginning() -> void:
 	get_tree().paused = false
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
-	_spawn_super_weapon()
 
 
 func _on_restart_pressed() -> void:

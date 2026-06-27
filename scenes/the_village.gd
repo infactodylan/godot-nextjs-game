@@ -20,20 +20,18 @@ const GROUND_Y := PlantDoorSpawn.GROUND_Y
 @onready var village_background: Node2D = $VillageBackground
 @onready var hud: CanvasLayer = $HUD
 @onready var pickups: Node2D = $Pickups
-@onready var super_weapon_platform: StaticBody2D = $Platforms/Platform5
 @onready var wasteland_gate: Area2D = $WastelandGate
 @onready var courtyard_gate: Area2D = $CourtyardGate
 @onready var power_plant_door: Area2D = $PowerPlant/EntryDoor
+@onready var tutorial_guide: Node2D = $TutorialGuide
 
 var _ammo_pot_scene: PackedScene = preload("res://entities/ammo_pot/ammo_pot.tscn")
 var _health_potion_scene: PackedScene = preload("res://entities/health_potion/health_potion.tscn")
-var _super_weapon_scene: PackedScene = preload("res://entities/super_weapon/super_weapon_pickup.tscn")
 
 var _can_restart := false
 var _phase := GamePhase.MENU
 var _active_ammo_pot: Area2D
 var _active_health_potion: Area2D
-var _active_super_weapon: Area2D
 var _health_potion_timer := 0.0
 var _wasteland_prompt_open := false
 var _wasteland_gate_armed := true
@@ -61,6 +59,9 @@ func _ready() -> void:
 	courtyard_gate.player_entered_courtyard.connect(_on_courtyard_entered)
 	power_plant_door.player_entered.connect(_on_power_plant_door_entered)
 	power_plant_door.player_exited.connect(_on_power_plant_door_exited)
+	tutorial_guide.configure(hud, player)
+	tutorial_guide.finished.connect(_on_tutorial_finished)
+	tutorial_guide.blackout_dialogue_finished.connect(_on_blackout_dialogue_finished)
 
 	if get_tree().has_meta(DEATH_RESTART_META):
 		get_tree().remove_meta(DEATH_RESTART_META)
@@ -190,29 +191,12 @@ func _try_spawn_ammo_pot() -> void:
 	hud.show_reload_indicator(pot, -1.0)
 
 
-func _spawn_super_weapon() -> void:
-	_despawn_super_weapon()
-	var pickup := _super_weapon_scene.instantiate() as Area2D
-	pickups.add_child(pickup)
-	pickup.global_position = _platform_pickup_position(super_weapon_platform)
-	pickup.collected.connect(_on_super_weapon_collected)
-	_active_super_weapon = pickup
-	hud.show_boost_indicator(pickup, -1.0)
-
-
 func _despawn_health_potion() -> void:
 	if _active_health_potion and is_instance_valid(_active_health_potion):
 		_active_health_potion.queue_free()
 	_active_health_potion = null
 	_health_potion_timer = 0.0
 	hud.hide_health_indicator()
-
-
-func _despawn_super_weapon() -> void:
-	if _active_super_weapon and is_instance_valid(_active_super_weapon):
-		_active_super_weapon.queue_free()
-	_active_super_weapon = null
-	hud.hide_boost_indicator()
 
 
 func _on_ammo_pot_collected() -> void:
@@ -226,17 +210,9 @@ func _on_health_potion_collected() -> void:
 	hud.hide_health_indicator()
 
 
-func _on_super_weapon_collected() -> void:
-	_active_super_weapon = null
-	hud.hide_boost_indicator()
-
-
 func _get_available_platforms() -> Array[Node2D]:
 	var platforms: Array[Node2D] = []
 	for node in get_tree().get_nodes_in_group("platform"):
-		if _active_super_weapon and is_instance_valid(_active_super_weapon):
-			if node.global_position.distance_to(_active_super_weapon.global_position) < 40.0:
-				continue
 		if _active_health_potion and is_instance_valid(_active_health_potion):
 			if node.global_position.distance_to(_active_health_potion.global_position) < 40.0:
 				continue
@@ -276,6 +252,11 @@ func _is_at_power_plant_door() -> bool:
 func _sync_power_plant_door_prompt() -> void:
 	var at_door := _is_at_power_plant_door()
 	if at_door and _phase == GamePhase.PLAYING and not hud.is_menu_visible():
+		if not GameState.is_controls_tutorial_complete():
+			if not _at_power_plant_door:
+				_at_power_plant_door = true
+				hud.show_interact_prompt("Complete Mara's training first.")
+			return
 		if not _at_power_plant_door:
 			_at_power_plant_door = true
 			hud.show_interact_prompt("Press E to enter the power plant")
@@ -285,6 +266,8 @@ func _sync_power_plant_door_prompt() -> void:
 
 
 func _try_power_plant_entry() -> bool:
+	if not GameState.is_controls_tutorial_complete():
+		return false
 	if not _is_at_power_plant_door() or _phase != GamePhase.PLAYING:
 		return false
 	if hud.is_menu_visible():
@@ -309,6 +292,8 @@ func _enter_power_plant() -> void:
 
 
 func _on_wasteland_gate_entered() -> void:
+	if not GameState.is_controls_tutorial_complete():
+		return
 	if not _wasteland_gate_armed or _wasteland_prompt_open or _phase != GamePhase.PLAYING:
 		return
 	_wasteland_prompt_open = true
@@ -344,6 +329,7 @@ func _apply_entry_spawn() -> void:
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_snap_camera_to_player()
+	tutorial_guide.start_if_needed()
 	_sync_power_plant_door_prompt()
 
 
@@ -372,12 +358,15 @@ func _apply_persisted_plant_power() -> void:
 
 
 func _on_courtyard_entered() -> void:
+	if not GameState.is_controls_tutorial_complete():
+		return
 	if GameState.has_plant_blackout_triggered() or _phase != GamePhase.PLAYING:
 		return
 	GameState.trigger_plant_blackout()
 	AudioManager.play_power_down()
 	AudioManager.play_electric_zap()
-	_flicker_out_village_lights()
+	await _flicker_out_village_lights()
+	tutorial_guide.start_blackout_if_needed()
 
 
 func _flicker_out_village_lights() -> void:
@@ -424,7 +413,15 @@ func _start_level_from_beginning() -> void:
 	get_tree().paused = false
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
-	_spawn_super_weapon()
+	tutorial_guide.start_if_needed()
+	_sync_power_plant_door_prompt()
+
+
+func _on_tutorial_finished() -> void:
+	_sync_power_plant_door_prompt()
+
+
+func _on_blackout_dialogue_finished() -> void:
 	_sync_power_plant_door_prompt()
 
 

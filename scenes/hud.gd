@@ -15,6 +15,7 @@ const RELOAD_CALLOUT_TEXT := "Reload available — get ammo!"
 const HEALTH_CALLOUT_TEXT := "Health potion — get healing!"
 const BOOST_CALLOUT_TEXT := "Super weapon boost — grab it now!"
 const INTERACT_PROMPT_COLOR := Color(1.0, 0.95, 0.72, 1.0)
+const DIALOGUE_MAX_SCREEN_WIDTH_RATIO := 0.7
 
 @onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
 @onready var ammo_label: Label = $MarginContainer/VBoxContainer/AmmoLabel
@@ -67,6 +68,10 @@ var _menu_mode := "start"
 var _menu_secondary_button: Button
 var _choice_yes_callback: Callable
 var _choice_no_callback: Callable
+var _tutorial_continue_callback: Callable
+var _tutorial_panel: PanelContainer
+var _tutorial_speaker_label: Label
+var _tutorial_body_label: Label
 
 
 func _ready() -> void:
@@ -92,7 +97,11 @@ func _ready() -> void:
 	_disable_button_keyboard_focus()
 	_setup_pickup_callout()
 	_setup_interact_prompt()
+	_setup_tutorial_panel()
 	_setup_shake_off_hint()
+	_configure_dialogue_label(menu_message)
+	get_viewport().size_changed.connect(_update_dialogue_width_limits)
+	_update_dialogue_width_limits()
 	show_start_screen()
 
 
@@ -258,7 +267,50 @@ func hide_interact_prompt() -> void:
 	_interact_prompt.visible = false
 
 
+func show_npc_dialogue(
+	speaker: String,
+	message: String,
+	button_text: String,
+	on_continue: Callable
+) -> void:
+	hide_interact_prompt()
+	hide_tutorial_step()
+	_menu_mode = "tutorial"
+	_tutorial_continue_callback = on_continue
+	_hide_secondary_button()
+	hide_reload_indicator()
+	hide_health_indicator()
+	hide_boost_indicator()
+	hide_countdown()
+	get_tree().paused = true
+	pause_overlay.visible = false
+	pause_button.text = "Pause"
+	menu_title.text = speaker
+	menu_message.text = message
+	menu_message.visible = true
+	_update_dialogue_width_limits()
+	menu_button.text = button_text
+	menu_overlay.visible = true
+
+
+func show_tutorial_step(speaker: String, instruction: String) -> void:
+	_tutorial_speaker_label.text = speaker
+	_tutorial_body_label.text = instruction
+	_update_dialogue_width_limits()
+	_tutorial_panel.visible = true
+
+
+func hide_tutorial_step() -> void:
+	if _tutorial_panel:
+		_tutorial_panel.visible = false
+
+
+func is_tutorial_step_visible() -> bool:
+	return _tutorial_panel != null and _tutorial_panel.visible
+
+
 func show_start_screen(title: String = "The Village") -> void:
+	hide_tutorial_step()
 	hide_interact_prompt()
 	_menu_mode = "start"
 	_hide_secondary_button()
@@ -337,6 +389,7 @@ func show_choice_prompt(
 	menu_title.text = title
 	menu_message.text = message
 	menu_message.visible = true
+	_update_dialogue_width_limits()
 	menu_button.text = yes_text
 	_ensure_secondary_button()
 	_menu_secondary_button.text = no_text
@@ -360,6 +413,12 @@ func _ensure_secondary_button() -> void:
 func _hide_secondary_button() -> void:
 	if _menu_secondary_button:
 		_menu_secondary_button.visible = false
+
+
+func _close_tutorial_dialogue() -> void:
+	menu_overlay.visible = false
+	get_tree().paused = false
+	get_viewport().gui_release_focus()
 
 
 func _close_choice_prompt() -> void:
@@ -430,6 +489,12 @@ func _disable_button_keyboard_focus() -> void:
 
 
 func _on_menu_button_pressed() -> void:
+	if _menu_mode == "tutorial":
+		var callback := _tutorial_continue_callback
+		_close_tutorial_dialogue()
+		if callback.is_valid():
+			callback.call()
+		return
 	if _menu_mode == "choice":
 		var callback := _choice_yes_callback
 		_close_choice_prompt()
@@ -467,6 +532,67 @@ func _update_health_arrow_timer() -> void:
 func _update_boost_arrow_timer() -> void:
 	if boost_arrow.visible:
 		boost_arrow.set_timer_text("%ds" % maxi(ceili(_boost_time_left), 0))
+
+
+func _setup_tutorial_panel() -> void:
+	_tutorial_panel = PanelContainer.new()
+	_tutorial_panel.name = "TutorialPanel"
+	_tutorial_panel.z_index = 109
+	_tutorial_panel.visible = false
+	_tutorial_panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_tutorial_panel.offset_top = 12.0
+	_tutorial_panel.offset_bottom = 108.0
+	_tutorial_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	_tutorial_panel.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	margin.add_child(vbox)
+
+	_tutorial_speaker_label = Label.new()
+	_tutorial_speaker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tutorial_speaker_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_tutorial_speaker_label.add_theme_font_size_override("font_size", 28)
+	_tutorial_speaker_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.45))
+	vbox.add_child(_tutorial_speaker_label)
+
+	_tutorial_body_label = Label.new()
+	_configure_dialogue_label(_tutorial_body_label)
+	_tutorial_body_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_tutorial_body_label.add_theme_font_size_override("font_size", 24)
+	_tutorial_body_label.add_theme_color_override("font_color", Color(0.92, 0.94, 0.98))
+	vbox.add_child(_tutorial_body_label)
+
+	add_child(_tutorial_panel)
+
+
+func _configure_dialogue_label(label: Label) -> void:
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+
+func _dialogue_max_width() -> float:
+	return get_viewport().get_visible_rect().size.x * DIALOGUE_MAX_SCREEN_WIDTH_RATIO
+
+
+func _apply_dialogue_max_width(label: Label) -> void:
+	if label == null:
+		return
+	var max_width := _dialogue_max_width()
+	label.custom_minimum_size.x = max_width
+	label.size.x = max_width
+
+
+func _update_dialogue_width_limits() -> void:
+	_apply_dialogue_max_width(menu_message)
+	_apply_dialogue_max_width(_tutorial_body_label)
 
 
 func _setup_interact_prompt() -> void:
