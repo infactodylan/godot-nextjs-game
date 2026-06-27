@@ -398,6 +398,8 @@ func _finish_get_ready() -> void:
 	_get_ready_active = false
 	if _get_ready_callback.is_valid():
 		_get_ready_callback.call()
+	if get_tree().paused:
+		get_tree().paused = false
 
 
 func _finish_get_ready_after_resume() -> void:

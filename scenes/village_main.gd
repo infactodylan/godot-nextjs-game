@@ -47,7 +47,7 @@ func _ready() -> void:
 
 	if get_tree().has_meta(DEATH_RESTART_META):
 		get_tree().remove_meta(DEATH_RESTART_META)
-		_start_level_from_beginning()
+		call_deferred("_start_level_from_beginning")
 
 
 func _process(delta: float) -> void:
@@ -236,8 +236,9 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 
 func _on_player_died() -> void:
+	get_tree().paused = false
 	get_tree().set_meta(DEATH_RESTART_META, true)
-	get_tree().reload_current_scene()
+	get_tree().call_deferred("reload_current_scene")
 
 
 func _on_play_pressed() -> void:
@@ -253,4 +254,5 @@ func _start_level_from_beginning() -> void:
 
 
 func _on_restart_pressed() -> void:
+	get_tree().paused = false
 	get_tree().reload_current_scene()
