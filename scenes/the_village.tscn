@@ -1,20 +1,33 @@
 [gd_scene format=3 uid="uid://thevillage01"]
 
-[ext_resource type="Script" path="res://scenes/the_village.gd" id="1_vmain"]
+[ext_resource type="Script" uid="uid://brtkl2c087e3h" path="res://scenes/the_village.gd" id="1_vmain"]
 [ext_resource type="PackedScene" uid="uid://bplayer001" path="res://player/player.tscn" id="2_player"]
 [ext_resource type="Script" uid="uid://dfx0r38xxqeij" path="res://scenes/hud.gd" id="5_hud"]
 [ext_resource type="Script" uid="uid://b21ryxj5ubnwd" path="res://scenes/pickup_arrow.gd" id="6_pickup_arrow"]
 [ext_resource type="PackedScene" uid="uid://villagebg001" path="res://scenes/village_background.tscn" id="7_vbg"]
-[ext_resource type="Script" path="res://scenes/village_platforms_setup.gd" id="8_vplatforms"]
-
-[ext_resource type="Script" path="res://entities/wasteland_gate/wasteland_gate.gd" id="9_gate"]
-[ext_resource type="Script" path="res://scenes/farmland_foliage.gd" id="10_foliage"]
+[ext_resource type="Script" uid="uid://cdb7oyaiw8ous" path="res://scenes/village_platforms_setup.gd" id="8_vplatforms"]
+[ext_resource type="Script" uid="uid://d2ns3u0fecer4" path="res://entities/wasteland_gate/wasteland_gate.gd" id="9_gate"]
+[ext_resource type="Script" uid="uid://b0an082l0qws6" path="res://scenes/farmland_foliage.gd" id="10_foliage"]
+[ext_resource type="Script" uid="uid://ihyusd76wxen" path="res://entities/power_plant/power_plant.gd" id="11_power_plant"]
+[ext_resource type="Script" uid="uid://qb2s22vau3et" path="res://entities/power_plant/power_plant_visual.gd" id="12_power_plant_visual"]
+[ext_resource type="Script" path="res://scenes/village_sky_backdrop.gd" id="13_sky_backdrop"]
+[ext_resource type="Script" path="res://entities/village_courtyard/village_courtyard.gd" id="14_courtyard"]
+[ext_resource type="Script" path="res://entities/power_plant/power_plant_ambience_zone.gd" id="15_plant_ambience"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(7800, 80)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_platform"]
 size = Vector2(180, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gate"]
+size = Vector2(220, 140)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_courtyard"]
+size = Vector2(1300, 180)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_plant_ambience"]
+size = Vector2(900, 320)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pickup_banner"]
 content_margin_left = 20.0
@@ -25,16 +38,27 @@ bg_color = Color(0.05, 0.08, 0.16, 0.88)
 border_width_bottom = 3
 border_color = Color(1, 0.9, 0.35, 0.9)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_gate"]
-size = Vector2(220, 140)
-
 [node name="TheVillage" type="Node2D" unique_id=1093160678]
 script = ExtResource("1_vmain")
 
 [node name="MapCamera" type="Camera2D" parent="." unique_id=499401397]
-position = Vector2(3900, 450)
+position = Vector2(3589, 343)
 
-[node name="VillageBackground" parent="." instance=ExtResource("7_vbg")]
+[node name="SkyCanvas" type="CanvasLayer" parent="."]
+layer = -100
+follow_viewport_enabled = true
+
+[node name="SkyFill" type="ColorRect" parent="SkyCanvas"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+script = ExtResource("13_sky_backdrop")
+
+[node name="VillageBackground" parent="." unique_id=794007982 instance=ExtResource("7_vbg")]
 
 [node name="Ground" type="StaticBody2D" parent="." unique_id=1351209560]
 position = Vector2(3900, 860)
@@ -53,9 +77,6 @@ color = Color(0.2, 0.16, 0.14, 1)
 
 [node name="Platforms" type="Node2D" parent="." unique_id=1288930003]
 script = ExtResource("8_vplatforms")
-
-[node name="FarmlandFoliage" type="Node2D" parent="."]
-script = ExtResource("10_foliage")
 
 [node name="Platform" type="StaticBody2D" parent="Platforms" unique_id=628012595 groups=["platform"]]
 position = Vector2(420, 723)
@@ -82,7 +103,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Platform3" type="StaticBody2D" parent="Platforms" unique_id=1661939379 groups=["platform"]]
 position = Vector2(860, 583)
 collision_layer = 2
@@ -91,7 +111,6 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform3" unique_id=2058968715]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
-
 
 [node name="Platform4" type="StaticBody2D" parent="Platforms" unique_id=537296847 groups=["platform"]]
 position = Vector2(1080, 513)
@@ -102,7 +121,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Platform5" type="StaticBody2D" parent="Platforms" unique_id=1900678590 groups=["platform"]]
 position = Vector2(1500, 653)
 collision_layer = 2
@@ -111,7 +129,6 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform5" unique_id=500844111]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
-
 
 [node name="Platform6" type="StaticBody2D" parent="Platforms" unique_id=1129112141 groups=["platform"]]
 position = Vector2(1850, 583)
@@ -122,7 +139,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Platform7" type="StaticBody2D" parent="Platforms" unique_id=1761243830 groups=["platform"]]
 position = Vector2(2650, 723)
 collision_layer = 2
@@ -131,7 +147,6 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform7" unique_id=1309075556]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
-
 
 [node name="Platform8" type="StaticBody2D" parent="Platforms" unique_id=332312848 groups=["platform"]]
 position = Vector2(3050, 583)
@@ -142,7 +157,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Platform9" type="StaticBody2D" parent="Platforms" unique_id=1613862612 groups=["platform"]]
 position = Vector2(3350, 513)
 collision_layer = 2
@@ -151,7 +165,6 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform9" unique_id=986022919]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
-
 
 [node name="Platform10" type="StaticBody2D" parent="Platforms" unique_id=312087564 groups=["platform"]]
 position = Vector2(3500, 723)
@@ -162,86 +175,111 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
-[node name="Courthouse" type="StaticBody2D" parent="Platforms" groups=["platform"]]
+[node name="Courthouse" type="StaticBody2D" parent="Platforms" unique_id=1958640907 groups=["platform"]]
 position = Vector2(4200, 723)
 collision_layer = 2
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Courthouse"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Courthouse" unique_id=1945733142]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="Platform11" type="StaticBody2D" parent="Platforms" groups=["platform"]]
+[node name="Platform11" type="StaticBody2D" parent="Platforms" unique_id=1348991631 groups=["platform"]]
 position = Vector2(5220, 723)
 collision_layer = 2
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform11"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform11" unique_id=655686695]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="Platform12" type="StaticBody2D" parent="Platforms" groups=["platform"]]
+[node name="Platform12" type="StaticBody2D" parent="Platforms" unique_id=210802178 groups=["platform"]]
 position = Vector2(5520, 653)
 collision_layer = 2
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform12"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform12" unique_id=1765854199]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="Platform13" type="StaticBody2D" parent="Platforms" groups=["platform"]]
+[node name="Platform13" type="StaticBody2D" parent="Platforms" unique_id=1797931753 groups=["platform"]]
 position = Vector2(5820, 583)
 collision_layer = 2
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform13"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform13" unique_id=1176917639]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="Platform14" type="StaticBody2D" parent="Platforms" groups=["platform"]]
+[node name="Platform14" type="StaticBody2D" parent="Platforms" unique_id=2133596808 groups=["platform"]]
 position = Vector2(6080, 653)
 collision_layer = 2
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform14"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform14" unique_id=2130902176]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="Platform15" type="StaticBody2D" parent="Platforms" groups=["platform"]]
+[node name="Platform15" type="StaticBody2D" parent="Platforms" unique_id=68697150 groups=["platform"]]
 position = Vector2(6280, 723)
 collision_layer = 2
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform15"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform15" unique_id=197452241]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="FarmBarn" type="StaticBody2D" parent="Platforms" groups=["platform"]]
+[node name="FarmBarn" type="StaticBody2D" parent="Platforms" unique_id=423310561 groups=["platform"]]
 position = Vector2(6680, 723)
 collision_layer = 2
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/FarmBarn"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/FarmBarn" unique_id=1709436097]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="FarmSilo" type="StaticBody2D" parent="Platforms" groups=["platform"]]
+[node name="FarmSilo" type="StaticBody2D" parent="Platforms" unique_id=1784175471 groups=["platform"]]
 position = Vector2(7080, 583)
 collision_layer = 2
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/FarmSilo"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/FarmSilo" unique_id=147923394]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
+[node name="FarmlandFoliage" type="Node2D" parent="." unique_id=417786478]
+script = ExtResource("10_foliage")
+
+[node name="PowerPlant" type="StaticBody2D" parent="." unique_id=1903442461]
+position = Vector2(2280, 820)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("11_power_plant")
+
+[node name="Visual" type="Node2D" parent="PowerPlant" unique_id=71352069]
+script = ExtResource("12_power_plant_visual")
+
+[node name="PowerPlantAmbienceZone" type="Area2D" parent="."]
+position = Vector2(2280, 760)
+script = ExtResource("15_plant_ambience")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PowerPlantAmbienceZone"]
+shape = SubResource("RectangleShape2D_plant_ambience")
+
 [node name="Pickups" type="Node2D" parent="." unique_id=1742652088]
 
-[node name="WastelandGate" type="Area2D" parent="."]
+[node name="CourtyardGate" type="Area2D" parent="."]
+position = Vector2(4320, 780)
+script = ExtResource("14_courtyard")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CourtyardGate"]
+shape = SubResource("RectangleShape2D_courtyard")
+
+[node name="WastelandGate" type="Area2D" parent="." unique_id=2007636794]
 position = Vector2(7520, 780)
 script = ExtResource("9_gate")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WastelandGate"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WastelandGate" unique_id=607191898]
 shape = SubResource("RectangleShape2D_gate")
 
 [node name="Player" parent="." unique_id=1783904878 instance=ExtResource("2_player")]
@@ -280,7 +318,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("6_pickup_arrow")
 
-[node name="HealthArrow" type="Control" parent="HUD/PickupGuides"]
+[node name="HealthArrow" type="Control" parent="HUD/PickupGuides" unique_id=1953483843]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -290,19 +328,17 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("6_pickup_arrow")
 
-[node name="PauseOverlay" type="ColorRect" parent="HUD"]
+[node name="PauseOverlay" type="ColorRect" parent="HUD" unique_id=1717867140]
 visible = false
 z_index = 50
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.45)
 
-[node name="PauseLabel" type="Label" parent="HUD/PauseOverlay"]
+[node name="PauseLabel" type="Label" parent="HUD/PauseOverlay" unique_id=894420646]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -356,13 +392,13 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 34
 text = "20s"
 
-[node name="HealthRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox"]
+[node name="HealthRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox" unique_id=2127726399]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="HealthText" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow"]
+[node name="HealthText" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow" unique_id=1406790439]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.35, 0.95, 0.45, 1)
@@ -370,7 +406,7 @@ theme_override_font_sizes/font_size = 34
 text = "HEALTH POTION — GET HEALING"
 horizontal_alignment = 1
 
-[node name="HealthTimer" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow"]
+[node name="HealthTimer" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow" unique_id=381619720]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 34
@@ -398,7 +434,6 @@ text = "5s"
 
 [node name="CountdownCenter" type="CenterContainer" parent="HUD" unique_id=185703758]
 z_index = 100
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -424,7 +459,6 @@ text = "5"
 horizontal_alignment = 1
 
 [node name="MarginContainer" type="MarginContainer" parent="HUD" unique_id=868172383]
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -463,7 +497,7 @@ theme_override_colors/font_color = Color(1, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 28
 text = "Boss HP: 20/20"
 
-[node name="WaveLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+[node name="WaveLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer" unique_id=1640650854]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.55, 1)
 theme_override_font_sizes/font_size = 28
@@ -475,9 +509,8 @@ theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
 theme_override_font_sizes/font_size = 34
 text = "Game Over — press R to restart"
 
-[node name="MenuOverlay" type="ColorRect" parent="HUD"]
+[node name="MenuOverlay" type="ColorRect" parent="HUD" unique_id=1306120906]
 z_index = 300
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -485,7 +518,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.02, 0.05, 0.12, 0.82)
 
-[node name="MenuCenter" type="CenterContainer" parent="HUD/MenuOverlay"]
+[node name="MenuCenter" type="CenterContainer" parent="HUD/MenuOverlay" unique_id=173732309]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -493,19 +526,19 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MenuVBox" type="VBoxContainer" parent="HUD/MenuOverlay/MenuCenter"]
+[node name="MenuVBox" type="VBoxContainer" parent="HUD/MenuOverlay/MenuCenter" unique_id=2014837703]
 layout_mode = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="MenuTitle" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+[node name="MenuTitle" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox" unique_id=214393969]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.35, 1)
 theme_override_font_sizes/font_size = 72
 text = "The Village"
 horizontal_alignment = 1
 
-[node name="MenuMessage" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+[node name="MenuMessage" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox" unique_id=1950803871]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
@@ -513,16 +546,15 @@ theme_override_font_sizes/font_size = 32
 text = "Better luck next time."
 horizontal_alignment = 1
 
-[node name="MenuButton" type="Button" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+[node name="MenuButton" type="Button" parent="HUD/MenuOverlay/MenuCenter/MenuVBox" unique_id=1846137307]
 custom_minimum_size = Vector2(220, 56)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 32
 text = "Play"
 
-[node name="TopRightControls" type="HBoxContainer" parent="HUD"]
+[node name="TopRightControls" type="HBoxContainer" parent="HUD" unique_id=1735647661]
 z_index = 301
-layout_mode = 3
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -534,13 +566,13 @@ grow_horizontal = 0
 theme_override_constants/separation = 8
 alignment = 2
 
-[node name="MuteButton" type="Button" parent="HUD/TopRightControls"]
+[node name="MuteButton" type="Button" parent="HUD/TopRightControls" unique_id=406531439]
 custom_minimum_size = Vector2(90, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Mute"
 
-[node name="PauseButton" type="Button" parent="HUD/TopRightControls"]
+[node name="PauseButton" type="Button" parent="HUD/TopRightControls" unique_id=945043317]
 custom_minimum_size = Vector2(90, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22

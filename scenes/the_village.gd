@@ -19,6 +19,7 @@ const DEATH_RESTART_META := "death_restart"
 @onready var pickups: Node2D = $Pickups
 @onready var super_weapon_platform: StaticBody2D = $Platforms/Platform5
 @onready var wasteland_gate: Area2D = $WastelandGate
+@onready var courtyard_gate: Area2D = $CourtyardGate
 
 var _ammo_pot_scene: PackedScene = preload("res://entities/ammo_pot/ammo_pot.tscn")
 var _health_potion_scene: PackedScene = preload("res://entities/health_potion/health_potion.tscn")
@@ -32,6 +33,7 @@ var _active_super_weapon: Area2D
 var _health_potion_timer := 0.0
 var _wasteland_prompt_open := false
 var _wasteland_gate_armed := true
+var _power_blackout_triggered := false
 
 
 func _ready() -> void:
@@ -39,6 +41,8 @@ func _ready() -> void:
 	_setup_map_camera()
 	player.set_physics_process(false)
 	AudioManager.play_village_ambience()
+	AudioManager.reset_tractor_ambience()
+	AudioManager.set_tractor_ambience_power_on(true)
 
 	hud.bind_player(player)
 	hud.bind_camera(map_camera)
@@ -50,6 +54,7 @@ func _ready() -> void:
 	player.health_changed.connect(_on_player_health_changed)
 	wasteland_gate.player_entered.connect(_on_wasteland_gate_entered)
 	wasteland_gate.player_exited.connect(_on_wasteland_gate_exited)
+	courtyard_gate.player_entered_courtyard.connect(_on_courtyard_entered)
 
 	if get_tree().has_meta(DEATH_RESTART_META):
 		get_tree().remove_meta(DEATH_RESTART_META)
@@ -103,6 +108,7 @@ func _setup_map_camera() -> void:
 	)
 	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
 	map_camera.zoom = Vector2(zoom_factor, zoom_factor)
+	map_camera.make_current()
 	var half_view := viewport_size / (2.0 * zoom_factor)
 	var initial_y := MAP_SIZE.y * 0.5 if half_view.y >= MAP_SIZE.y * 0.5 else player.global_position.y
 	map_camera.position = Vector2(player.global_position.x, initial_y)
@@ -265,6 +271,7 @@ func _on_wasteland_gate_entered() -> void:
 
 func _go_to_wastelands() -> void:
 	AudioManager.stop_village_ambience()
+	AudioManager.reset_tractor_ambience()
 	get_tree().set_meta("wasteland_spawn_x", 250.0)
 	get_tree().change_scene_to_file(WASTELANDS_SCENE)
 
@@ -287,6 +294,51 @@ func _stay_in_village() -> void:
 func _on_wasteland_gate_exited() -> void:
 	_wasteland_gate_armed = true
 	_wasteland_prompt_open = false
+
+
+func _on_courtyard_entered() -> void:
+	if _power_blackout_triggered or _phase != GamePhase.PLAYING:
+		return
+	_power_blackout_triggered = true
+	AudioManager.set_tractor_ambience_power_on(false)
+	AudioManager.play_power_down()
+	AudioManager.play_electric_zap()
+	_flicker_out_village_lights()
+
+
+func _flicker_out_village_lights() -> void:
+	var flicker_pattern: Array[Vector2] = [
+		Vector2(0.14, 0.0),
+		Vector2(0.07, 1.0),
+		Vector2(0.10, 0.0),
+		Vector2(0.05, 0.85),
+		Vector2(0.08, 0.0),
+		Vector2(0.04, 1.0),
+		Vector2(0.06, 0.0),
+		Vector2(0.05, 0.55),
+		Vector2(0.07, 0.0),
+		Vector2(0.04, 0.35),
+		Vector2(0.05, 0.0),
+		Vector2(0.03, 0.15),
+		Vector2(0.04, 0.0),
+		Vector2(0.06, 0.0),
+	]
+	for step in flicker_pattern:
+		await get_tree().create_timer(step.x).timeout
+		_set_village_light_brightness(step.y)
+	_set_village_lights(false)
+
+
+func _set_village_light_brightness(brightness: float) -> void:
+	for node in get_tree().get_nodes_in_group("village_lit_building"):
+		if node.has_method("set_light_brightness"):
+			node.call("set_light_brightness", brightness)
+
+
+func _set_village_lights(on: bool) -> void:
+	for node in get_tree().get_nodes_in_group("village_lit_building"):
+		if node.has_method("set_lights_on"):
+			node.call("set_lights_on", on)
 
 
 func _on_play_pressed() -> void:

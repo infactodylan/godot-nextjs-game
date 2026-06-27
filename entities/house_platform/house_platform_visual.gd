@@ -6,12 +6,25 @@ enum HouseType { COTTAGE, HOUSE, TALL_HOUSE, COURTHOUSE, BARN, SILO }
 @export var house_type: HouseType = HouseType.COTTAGE
 @export var color_seed: int = 0
 
+var lights_on := true
+var light_brightness := 1.0
 var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	add_to_group("village_lit_building")
 	_rng.seed = color_seed if color_seed != 0 else hash(str(get_parent().name))
 	queue_redraw()
+
+
+func set_light_brightness(brightness: float) -> void:
+	light_brightness = clampf(brightness, 0.0, 1.0)
+	lights_on = light_brightness > 0.01
+	queue_redraw()
+
+
+func set_lights_on(on: bool) -> void:
+	set_light_brightness(1.0 if on else 0.0)
 
 
 func _draw() -> void:
@@ -132,8 +145,8 @@ func _draw_cottage() -> void:
 	var door_h := 28.0
 	draw_rect(Rect2(-door_w * 0.5, -door_h, door_w, door_h), _tint(Color(0.2, 0.14, 0.1), 0.05))
 
-	_draw_broken_window(-hw + 22.0, roof_y + 14.0, 18.0, 16.0)
-	_draw_broken_window(hw - 40.0, roof_y + 14.0, 18.0, 16.0)
+	_draw_lit_window(-hw + 22.0, roof_y + 14.0, 18.0, 16.0)
+	_draw_lit_window(hw - 40.0, roof_y + 14.0, 18.0, 16.0)
 
 
 func _draw_house() -> void:
@@ -170,7 +183,7 @@ func _draw_house() -> void:
 
 	for wx in [-58.0, -18.0, 26.0, 66.0]:
 		var wy := roof_y + 16.0 if wx < 0.0 else floor_y + 10.0
-		_draw_broken_window(wx, wy, 22.0, 20.0)
+		_draw_lit_window(wx, wy, 22.0, 20.0)
 
 	draw_rect(Rect2(-16.0, floor_y - 2.0, 32.0, floor_y * -1.0 + 2.0), _tint(Color(0.18, 0.12, 0.08), 0.05))
 
@@ -219,10 +232,7 @@ func _draw_tall_house() -> void:
 			if row == 2 and col == 1:
 				draw_rect(Rect2(wx - 6.0, wy, 32.0, floor_h - 12.0), _tint(Color(0.16, 0.1, 0.06), 0.04))
 				continue
-			if _rng.randf() < 0.35:
-				draw_rect(Rect2(wx, wy, 18.0, 18.0), wall.darkened(0.3))
-			else:
-				_draw_broken_window(wx, wy, 18.0, 18.0)
+			_draw_lit_window(wx, wy, 18.0, 18.0)
 
 	draw_rect(Rect2(-hw + 10.0, roof_y + 6.0, hw * 2.0 - 20.0, 8.0), stone)
 
@@ -253,6 +263,9 @@ func _draw_courthouse() -> void:
 		draw_rect(Rect2(col_x, roof_y + 8.0, 14.0, h - 20.0), stone.lightened(0.06))
 	draw_rect(Rect2(-28.0, roof_y + 20.0, 56.0, h - 28.0), Color(0.14, 0.1, 0.08, 0.9))
 	draw_rect(Rect2(-hw + 20.0, roof_y + 30.0, hw * 2.0 - 40.0, 8.0), stone)
+	for wx in [-hw + 36.0, -hw + 76.0, hw - 94.0, hw - 54.0]:
+		_draw_lit_window(wx, roof_y + 38.0, 16.0, 18.0)
+		_draw_lit_window(wx, roof_y + 68.0, 16.0, 18.0)
 
 
 func _draw_barn() -> void:
@@ -272,6 +285,9 @@ func _draw_barn() -> void:
 	)
 	draw_rect(Rect2(-hw + 6.0, roof_y, hw * 2.0 - 12.0, h - 4.0), wall)
 	draw_rect(Rect2(-hw * 0.35, roof_y + 8.0, hw * 0.7, h - 16.0), Color(0.12, 0.08, 0.06, 0.85))
+	_draw_lit_window(-hw + 18.0, roof_y + 18.0, 20.0, 18.0)
+	_draw_lit_window(hw - 38.0, roof_y + 18.0, 20.0, 18.0)
+	_draw_lit_window(-14.0, roof_y + 42.0, 28.0, 22.0)
 	_draw_cracks(-hw + 10.0, roof_y + 6.0, hw * 2.0 - 20.0, h - 12.0, 3)
 
 
@@ -293,15 +309,31 @@ func _draw_silo() -> void:
 	for band in 4:
 		var by := roof_y + band * (h / 4.0)
 		draw_line(Vector2(-hw + 6.0, by), Vector2(hw - 6.0, by), metal.darkened(0.2), 2.0)
+	_draw_lit_window(-10.0, roof_y + 28.0, 20.0, 16.0)
 
 
-func _draw_broken_window(x: float, y: float, w: float, h: float) -> void:
+func _draw_lit_window(x: float, y: float, w: float, h: float) -> void:
+	if light_brightness <= 0.01:
+		_draw_dark_window(x, y, w, h)
+		return
 	var frame := _tint(Color(0.2, 0.18, 0.16), 0.04)
-	draw_rect(Rect2(x, y, w, h), Color(0.06, 0.05, 0.05, 0.9))
+	var glow := Color(0.95, 0.72, 0.32, 0.85 * light_brightness)
+	var halo := Color(0.85, 0.55, 0.18, 0.25 * light_brightness)
+	draw_rect(Rect2(x - 2.0, y - 2.0, w + 4.0, h + 4.0), halo)
+	draw_rect(Rect2(x, y, w, h), glow)
 	draw_rect(Rect2(x, y, w, 2.0), frame)
 	draw_rect(Rect2(x, y + h - 2.0, w, 2.0), frame)
-	if _rng.randf() < 0.45:
-		draw_line(Vector2(x + 2.0, y + 2.0), Vector2(x + w - 2.0, y + h - 2.0), Color(0.35, 0.38, 0.42, 0.4), 1.5)
+	draw_rect(Rect2(x, y, 2.0, h), frame)
+	draw_rect(Rect2(x + w - 2.0, y, 2.0, h), frame)
+
+
+func _draw_dark_window(x: float, y: float, w: float, h: float) -> void:
+	var frame := _tint(Color(0.2, 0.18, 0.16), 0.04)
+	draw_rect(Rect2(x, y, w, h), Color(0.05, 0.04, 0.04, 0.95))
+	draw_rect(Rect2(x, y, w, 2.0), frame)
+	draw_rect(Rect2(x, y + h - 2.0, w, 2.0), frame)
+	draw_rect(Rect2(x, y, 2.0, h), frame)
+	draw_rect(Rect2(x + w - 2.0, y, 2.0, h), frame)
 
 
 func _draw_cracks(x: float, y: float, w: float, h: float, count: int) -> void:

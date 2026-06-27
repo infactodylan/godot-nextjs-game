@@ -1,31 +1,20 @@
 [gd_scene format=3 uid="uid://villagebg001"]
 
 [ext_resource type="Script" path="res://scenes/village_background.gd" id="1_vbg"]
-[ext_resource type="Script" path="res://scenes/village_background_sky.gd" id="2_vsky"]
 [ext_resource type="Script" path="res://scenes/village_background_layer.gd" id="3_vlayer"]
-[ext_resource type="Script" path="res://scenes/village_sky_backdrop.gd" id="4_backdrop"]
 
 [node name="VillageBackground" type="Node2D"]
 script = ExtResource("1_vbg")
 
-[node name="ScreenBackdrop" type="CanvasLayer" parent="."]
-layer = -128
-follow_viewport_enabled = true
+[node name="Clouds" type="Node2D" parent="."]
+z_index = -46
+script = ExtResource("3_vlayer")
+layer_type = 3
 
-[node name="SkyFill" type="Control" parent="ScreenBackdrop"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-script = ExtResource("4_backdrop")
-
-[node name="Sky" type="Node2D" parent="."]
-visible = false
-z_index = -50
-script = ExtResource("2_vsky")
+[node name="Skyline" type="Node2D" parent="."]
+z_index = -44
+script = ExtResource("3_vlayer")
+layer_type = 7
 
 [node name="FarHills" type="Node2D" parent="."]
 z_index = -40
@@ -51,11 +40,6 @@ layer_type = 5
 z_index = -17
 script = ExtResource("3_vlayer")
 layer_type = 6
-
-[node name="Clouds" type="Node2D" parent="."]
-z_index = -15
-script = ExtResource("3_vlayer")
-layer_type = 3
 
 [node name="Haze" type="Node2D" parent="."]
 z_index = -5
