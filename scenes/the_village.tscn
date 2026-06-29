@@ -297,6 +297,7 @@ position = Vector2(7520, 780)
 script = ExtResource("9_gate")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WastelandGate" unique_id=607191898]
+position = Vector2(170, -22)
 shape = SubResource("RectangleShape2D_gate")
 
 [node name="Player" parent="." unique_id=1783904878 instance=ExtResource("2_player")]
