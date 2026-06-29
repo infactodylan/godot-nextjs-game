@@ -7,9 +7,9 @@ const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(3600.0, 900.0)
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
-const CAMERA_ZOOM_MULTIPLIER := 4.29
-const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
-const DEATH_RESTART_META := "death_restart"
+const CAMERA_ZOOM_MULTIPLIER := 10.0
+const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 2.25
+const SCENE_PATH := "res://scenes/village_main.tscn"
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -42,9 +42,13 @@ func _ready() -> void:
 	player.ammo_changed.connect(_on_player_ammo_changed)
 	player.health_changed.connect(_on_player_health_changed)
 
-	if get_tree().has_meta(DEATH_RESTART_META):
-		get_tree().remove_meta(DEATH_RESTART_META)
-		call_deferred("_start_level_from_beginning")
+	if SaveManager.is_death_respawn():
+		SaveManager.clear_death_respawn()
+		call_deferred("_apply_death_respawn")
+	elif SaveManager.consume_pending_resume(SCENE_PATH):
+		call_deferred("_apply_saved_resume")
+	else:
+		hud.show_start_screen("The Village")
 
 
 func _process(delta: float) -> void:
@@ -91,7 +95,7 @@ func _setup_map_camera() -> void:
 		viewport_size.y * MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO / MAP_SIZE.y
 	)
 	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
-	map_camera.zoom = Vector2(zoom_factor, zoom_factor)
+	map_camera.configure(zoom_factor, MAP_SIZE)
 	var half_view := viewport_size / (2.0 * zoom_factor)
 	var initial_y := MAP_SIZE.y * 0.5 if half_view.y >= MAP_SIZE.y * 0.5 else player.global_position.y
 	map_camera.position = Vector2(player.global_position.x, initial_y)
@@ -209,8 +213,21 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 func _on_player_died() -> void:
 	get_tree().paused = false
-	get_tree().set_meta(DEATH_RESTART_META, true)
-	get_tree().call_deferred("reload_current_scene")
+	SaveManager.handle_player_death()
+
+
+func _apply_saved_resume() -> void:
+	SaveManager.apply_resume_spawn(player)
+	hud.hide_menu()
+	player.set_physics_process(true)
+	_phase = GamePhase.PLAYING
+
+
+func _apply_death_respawn() -> void:
+	SaveManager.apply_death_respawn(player)
+	hud.hide_menu()
+	player.set_physics_process(true)
+	_phase = GamePhase.PLAYING
 
 
 func _on_play_pressed() -> void:
@@ -222,6 +239,7 @@ func _start_level_from_beginning() -> void:
 	get_tree().paused = false
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
 func _on_restart_pressed() -> void:

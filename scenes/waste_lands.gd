@@ -22,11 +22,11 @@ const ENEMY_SPAWN_BODY_HALF_WIDTH := 14.0
 const ENEMY_SPAWN_PLATFORM_MARGIN := 10.0
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
-const CAMERA_ZOOM_MULTIPLIER := 4.29
-const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
+const CAMERA_ZOOM_MULTIPLIER := 10.0
+const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 2.25
 const VILLAGE_SCENE := "res://scenes/the_village.tscn"
 const VILLAGE_RETURN_SPAWN_X := 7380.0
-const DEATH_RESTART_META := "death_restart"
+const SCENE_PATH := "res://scenes/waste_lands.tscn"
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -85,11 +85,13 @@ func _ready() -> void:
 	village_gate.player_entered.connect(_on_village_gate_entered)
 	village_gate.player_exited.connect(_on_village_gate_exited)
 
-	if get_tree().has_meta(DEATH_RESTART_META):
-		get_tree().remove_meta(DEATH_RESTART_META)
-		call_deferred("_start_level_from_beginning")
+	if SaveManager.is_death_respawn():
+		SaveManager.clear_death_respawn()
+		call_deferred("_apply_death_respawn")
+	elif SaveManager.consume_pending_resume(SCENE_PATH):
+		call_deferred("_apply_saved_resume")
 	elif get_tree().has_meta("wasteland_spawn_x"):
-		_apply_entry_spawn()
+		call_deferred("_apply_entry_spawn")
 	else:
 		hud.show_start_screen("Waste Lands")
 
@@ -106,6 +108,35 @@ func _apply_entry_spawn() -> void:
 	_phase_timer = ENEMY_SPAWN_DELAY
 	hud.start_countdown("Enemies spawn in")
 	hud.update_countdown(_phase_timer)
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
+
+
+func _apply_saved_resume() -> void:
+	SaveManager.apply_resume_spawn(player)
+	if player.global_position.y <= 0.0:
+		player.global_position.y = ENEMY_SPAWN_GROUND_Y
+	hud.hide_menu()
+	player.set_physics_process(true)
+	_phase = GamePhase.PRE_START
+	_phase_timer = ENEMY_SPAWN_DELAY
+	hud.start_countdown("Enemies spawn in")
+	hud.update_countdown(_phase_timer)
+
+
+func _apply_death_respawn() -> void:
+	_clear_wave(wave1)
+	_clear_wave(wave2)
+	_disable_boss()
+	SaveManager.apply_death_respawn(player)
+	if player.global_position.y <= 0.0:
+		player.global_position.y = ENEMY_SPAWN_GROUND_Y
+	hud.hide_menu()
+	player.set_physics_process(true)
+	_phase = GamePhase.PRE_START
+	_phase_timer = ENEMY_SPAWN_DELAY
+	hud.start_countdown("Enemies spawn in")
+	hud.update_countdown(_phase_timer)
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
 func _process(delta: float) -> void:
@@ -129,6 +160,9 @@ func _process(delta: float) -> void:
 				_finish_super_weapon_grace()
 
 	_update_pickup_timers(delta)
+
+	if _phase != GamePhase.MENU:
+		SaveManager.track_position(SCENE_PATH, player.global_position, delta)
 
 	if player.should_camera_follow():
 		_update_camera_follow()
@@ -167,7 +201,7 @@ func _setup_map_camera() -> void:
 		viewport_size.y * MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO / MAP_SIZE.y
 	)
 	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
-	map_camera.zoom = Vector2(zoom_factor, zoom_factor)
+	map_camera.configure(zoom_factor, MAP_SIZE)
 	var half_view := viewport_size / (2.0 * zoom_factor)
 	var initial_y := MAP_SIZE.y * 0.5 if half_view.y >= MAP_SIZE.y * 0.5 else player.global_position.y
 	map_camera.position = Vector2(player.global_position.x, initial_y)
@@ -496,8 +530,7 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 func _on_player_died() -> void:
 	get_tree().paused = false
-	get_tree().set_meta(DEATH_RESTART_META, true)
-	get_tree().call_deferred("reload_current_scene")
+	SaveManager.handle_player_death()
 
 
 func _on_boss_defeated() -> void:
@@ -522,6 +555,7 @@ func _start_level_from_beginning() -> void:
 	_phase_timer = ENEMY_SPAWN_DELAY
 	hud.start_countdown("Enemies spawn in")
 	hud.update_countdown(_phase_timer)
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
 func _on_play_pressed() -> void:

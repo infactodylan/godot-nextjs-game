@@ -15,6 +15,7 @@ const RELOAD_CALLOUT_TEXT := "Reload available — get ammo!"
 const HEALTH_CALLOUT_TEXT := "Health potion — get healing!"
 const BOOST_CALLOUT_TEXT := "Super weapon boost — grab it now!"
 const INTERACT_PROMPT_COLOR := Color(1.0, 0.95, 0.72, 1.0)
+const OBJECTIVE_COLOR := Color(1.0, 0.85, 0.32, 1.0)
 const DIALOGUE_MAX_SCREEN_WIDTH_RATIO := 0.7
 
 @onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
@@ -72,6 +73,8 @@ var _tutorial_continue_callback: Callable
 var _tutorial_panel: PanelContainer
 var _tutorial_speaker_label: Label
 var _tutorial_body_label: Label
+var _objective_target: Node2D
+var _objective_label := ""
 
 
 func _ready() -> void:
@@ -212,7 +215,20 @@ func update_boost_timer(seconds_left: float) -> void:
 func hide_boost_indicator() -> void:
 	_boost_target = null
 	_boost_time_left = 0.0
-	boost_arrow.deactivate()
+	if _objective_target == null:
+		boost_arrow.deactivate()
+
+
+func show_objective_indicator(target: Node2D, label: String = "") -> void:
+	_objective_target = target
+	_objective_label = label
+
+
+func hide_objective_indicator() -> void:
+	_objective_target = null
+	_objective_label = ""
+	if _boost_target == null:
+		boost_arrow.deactivate()
 
 
 func show_shake_off_hint_once(enemy: CharacterBody2D) -> void:
@@ -675,13 +691,18 @@ func _process(delta: float) -> void:
 	elif health_arrow.visible:
 		health_arrow.deactivate()
 
-	if _boost_target and is_instance_valid(_boost_target) and _camera and _player:
+	if _objective_target and is_instance_valid(_objective_target) and _camera and _player:
+		if not boost_arrow.visible or boost_arrow.label_text != _objective_label:
+			boost_arrow.activate(
+				_objective_target, _camera, OBJECTIVE_COLOR, _player, _objective_label
+			)
+	elif _boost_target and is_instance_valid(_boost_target) and _camera and _player:
 		if not boost_arrow.visible:
 			boost_arrow.activate(
 				_boost_target, _camera, BOOST_COLOR, _player, BOOST_ARROW_LABEL
 			)
 			_update_boost_arrow_timer()
-	elif boost_arrow.visible:
+	elif boost_arrow.visible and _objective_target == null:
 		boost_arrow.deactivate()
 
 

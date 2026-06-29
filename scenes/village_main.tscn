@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://b21ryxj5ubnwd" path="res://scenes/pickup_arrow.gd" id="6_pickup_arrow"]
 [ext_resource type="PackedScene" uid="uid://villagebg001" path="res://scenes/village_background.tscn" id="7_vbg"]
 [ext_resource type="Script" path="res://scenes/village_platforms_setup.gd" id="8_vplatforms"]
+[ext_resource type="Script" path="res://scenes/map_camera.gd" id="9_map_camera"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(3600, 80)
@@ -27,6 +28,7 @@ script = ExtResource("1_vmain")
 
 [node name="MapCamera" type="Camera2D" parent="." unique_id=499401397]
 position = Vector2(1800, 450)
+script = ExtResource("9_map_camera")
 
 [node name="VillageBackground" parent="." instance=ExtResource("7_vbg")]
 

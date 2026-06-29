@@ -13,3 +13,7 @@ func _ready() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_entered_courtyard.emit()
+
+
+func is_player_inside(player: Node2D) -> bool:
+	return player != null and is_instance_valid(player) and overlaps_body(player)

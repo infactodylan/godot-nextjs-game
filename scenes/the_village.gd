@@ -7,13 +7,19 @@ const SCREEN_SIZE_RATIO := 0.75
 const MAP_SIZE := Vector2(7800.0, 900.0)
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
-const CAMERA_ZOOM_MULTIPLIER := 4.29
-const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
+const CAMERA_ZOOM_MULTIPLIER := 10.0
+const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 2.25
 const WASTELANDS_SCENE := "res://scenes/waste_lands.tscn"
 const POWER_PLANT_SCENE := "res://scenes/power_plant.tscn"
-const DEATH_RESTART_META := "death_restart"
+const SCENE_PATH := "res://scenes/the_village.tscn"
 const RETURN_FROM_PLANT_META := "return_from_plant"
 const GROUND_Y := PlantDoorSpawn.GROUND_Y
+const MISSION_BRIEFING_STUB := (
+	"We made it in time. Half the village heard Ashford on the relay — everyone is "
+	+ "talking about that archive computer.\n\n"
+	+ "The council is putting a mission party together. They'll want volunteers "
+	+ "who can survive the road east. This changes everything for River City."
+)
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -59,15 +65,19 @@ func _ready() -> void:
 	courtyard_gate.player_entered_courtyard.connect(_on_courtyard_entered)
 	power_plant_door.player_entered.connect(_on_power_plant_door_entered)
 	power_plant_door.player_exited.connect(_on_power_plant_door_exited)
-	tutorial_guide.configure(hud, player)
+	tutorial_guide.configure(hud, player, power_plant_door)
 	tutorial_guide.finished.connect(_on_tutorial_finished)
 	tutorial_guide.blackout_dialogue_finished.connect(_on_blackout_dialogue_finished)
 
-	if get_tree().has_meta(DEATH_RESTART_META):
-		get_tree().remove_meta(DEATH_RESTART_META)
-		call_deferred("_start_level_from_beginning")
+	if SaveManager.is_death_respawn():
+		SaveManager.clear_death_respawn()
+		call_deferred("_apply_death_respawn")
+	elif SaveManager.consume_pending_resume(SCENE_PATH):
+		call_deferred("_apply_saved_resume")
 	elif get_tree().has_meta("village_spawn_x") or get_tree().has_meta(RETURN_FROM_PLANT_META):
-		_apply_entry_spawn()
+		call_deferred("_apply_entry_spawn")
+	else:
+		hud.show_start_screen("The Village")
 
 
 func _process(delta: float) -> void:
@@ -77,6 +87,10 @@ func _process(delta: float) -> void:
 
 	_update_pickup_timers(delta)
 	_sync_power_plant_door_prompt()
+	_sync_courthouse_guide_arrow()
+
+	if _phase == GamePhase.PLAYING:
+		SaveManager.track_position(SCENE_PATH, player.global_position, delta)
 
 	if player.should_camera_follow():
 		_update_camera_follow()
@@ -115,7 +129,7 @@ func _setup_map_camera() -> void:
 		viewport_size.y * MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO / MAP_SIZE.y
 	)
 	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
-	map_camera.zoom = Vector2(zoom_factor, zoom_factor)
+	map_camera.configure(zoom_factor, MAP_SIZE)
 	map_camera.make_current()
 	var half_view := viewport_size / (2.0 * zoom_factor)
 	var initial_y := MAP_SIZE.y * 0.5 if half_view.y >= MAP_SIZE.y * 0.5 else player.global_position.y
@@ -234,8 +248,31 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 func _on_player_died() -> void:
 	get_tree().paused = false
-	get_tree().set_meta(DEATH_RESTART_META, true)
-	get_tree().call_deferred("reload_current_scene")
+	SaveManager.handle_player_death()
+
+
+func _apply_saved_resume() -> void:
+	SaveManager.apply_resume_spawn(player)
+	hud.hide_menu()
+	get_tree().paused = false
+	player.set_physics_process(true)
+	_phase = GamePhase.PLAYING
+	_snap_camera_to_player()
+	tutorial_guide.start_if_needed()
+	_sync_power_plant_door_prompt()
+	call_deferred("_sync_courthouse_guide_arrow")
+
+
+func _apply_death_respawn() -> void:
+	SaveManager.apply_death_respawn(player)
+	hud.hide_menu()
+	get_tree().paused = false
+	player.set_physics_process(true)
+	_phase = GamePhase.PLAYING
+	_snap_camera_to_player()
+	tutorial_guide.start_if_needed()
+	_sync_power_plant_door_prompt()
+	call_deferred("_sync_courthouse_guide_arrow")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -249,6 +286,30 @@ func _is_at_power_plant_door() -> bool:
 	return power_plant_door.is_player_inside(player)
 
 
+func _is_at_courthouse() -> bool:
+	return courtyard_gate.is_player_inside(player)
+
+
+func _should_escort_to_courthouse() -> bool:
+	return (
+		GameState.is_radio_broadcast_received()
+		and not GameState.is_mission_briefing_stub_complete()
+	)
+
+
+func _sync_courthouse_guide_arrow() -> void:
+	if not _should_escort_to_courthouse():
+		hud.hide_objective_indicator()
+		return
+	if _phase != GamePhase.PLAYING or hud.is_menu_visible():
+		hud.hide_objective_indicator()
+		return
+	if _is_at_courthouse():
+		hud.hide_objective_indicator()
+		return
+	hud.show_objective_indicator(courtyard_gate, "COURTHOUSE")
+
+
 func _sync_power_plant_door_prompt() -> void:
 	var at_door := _is_at_power_plant_door()
 	if at_door and _phase == GamePhase.PLAYING and not hud.is_menu_visible():
@@ -259,7 +320,10 @@ func _sync_power_plant_door_prompt() -> void:
 			return
 		if not _at_power_plant_door:
 			_at_power_plant_door = true
-			hud.show_interact_prompt("Press E to enter the power plant")
+			if tutorial_guide.is_following_to_plant() or GameState.is_mara_escorting():
+				hud.show_interact_prompt("Press E to enter the power plant (Mara follows)")
+			else:
+				hud.show_interact_prompt("Press E to enter the power plant")
 	elif _at_power_plant_door:
 		_at_power_plant_door = false
 		hud.hide_interact_prompt()
@@ -287,6 +351,9 @@ func _on_power_plant_door_exited() -> void:
 func _enter_power_plant() -> void:
 	hud.hide_interact_prompt()
 	_at_power_plant_door = false
+	if GameState.is_mara_escorting() or tutorial_guide.is_following_to_plant():
+		get_tree().set_meta("mara_accompanying", true)
+		GameState.mark_mara_escorting(true)
 	get_tree().set_meta("power_plant_entry", true)
 	get_tree().call_deferred("change_scene_to_file", POWER_PLANT_SCENE)
 
@@ -331,6 +398,8 @@ func _apply_entry_spawn() -> void:
 	_snap_camera_to_player()
 	tutorial_guide.start_if_needed()
 	_sync_power_plant_door_prompt()
+	call_deferred("_sync_courthouse_guide_arrow")
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
 func _snap_camera_to_player() -> void:
@@ -353,14 +422,44 @@ func _on_wasteland_gate_exited() -> void:
 func _apply_persisted_plant_power() -> void:
 	if GameState.is_plant_power_on():
 		_set_village_lights(true)
+	elif GameState.is_emergency_battery_active():
+		_set_village_light_brightness(0.38)
 	else:
 		_set_village_lights(false)
+
+
+func _start_mission_briefing_at_courthouse() -> void:
+	if GameState.is_mission_briefing_stub_complete():
+		return
+	if _phase != GamePhase.PLAYING or hud.is_menu_visible():
+		return
+	tutorial_guide.finish_follow_to_courthouse()
+	hud.hide_objective_indicator()
+	player.set_physics_process(false)
+	player.velocity = Vector2.ZERO
+	hud.show_npc_dialogue(
+		"Mara",
+		MISSION_BRIEFING_STUB,
+		"Understood",
+		_on_mission_briefing_stub_done
+	)
+
+
+func _on_mission_briefing_stub_done() -> void:
+	GameState.mark_mission_briefing_stub_complete()
+	GameState.mark_mara_escorting(false)
+	player.set_physics_process(true)
 
 
 func _on_courtyard_entered() -> void:
 	if not GameState.is_controls_tutorial_complete():
 		return
-	if GameState.has_plant_blackout_triggered() or _phase != GamePhase.PLAYING:
+	if _phase != GamePhase.PLAYING:
+		return
+	if _should_escort_to_courthouse():
+		_start_mission_briefing_at_courthouse()
+		return
+	if GameState.has_plant_blackout_triggered():
 		return
 	GameState.trigger_plant_blackout()
 	AudioManager.play_power_down()
@@ -415,6 +514,8 @@ func _start_level_from_beginning() -> void:
 	_phase = GamePhase.PLAYING
 	tutorial_guide.start_if_needed()
 	_sync_power_plant_door_prompt()
+	call_deferred("_sync_courthouse_guide_arrow")
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
 func _on_tutorial_finished() -> void:

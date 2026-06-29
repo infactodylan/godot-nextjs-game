@@ -45,20 +45,19 @@
 - **Enter Level 2** — `E` prompt at the plant door (`PowerPlant/EntryDoor`); loads `scenes/power_plant.tscn`; player spawns just inside the interior door on entry and just outside the exterior door on return (`PlantDoorSpawn`).
 - **Interact input** — `interact` action (E) and HUD prompt (`Press E to enter the power plant` / exit variant).
 - **Courtyard blackout** — entering the courthouse courtyard triggers a village-wide power-down (lights flicker out, SFX); sets `GameState.plant_power_on = false`.
+- **Mara escort** — after blackout dialogue, Mara follows the player to the power plant door; Ashford radio stakes explained in dialogue.
 - **Persisted power state** — `GameState` autoload keeps plant on/off across village ↔ plant scene changes; interior and village lights respect the same flag.
 - **Core player kit** — move, jump, crouch, shoot, pickups (ammo pot, health potion, super weapon on a village platform).
 - **Side exit** — optional prompt to leave for the wastelands (`scenes/waste_lands.tscn`) at the east gate; return spawn back into the village is supported.
 
 ### Still needed
-- NPC, signpost, or log explaining the engineer’s role and the plant failure.
-- Story trigger or dialogue sending the player to investigate (beyond the physical door).
-- Tutorial copy for movement/interact if we want a formal onboarding beat.
+- Signpost or log explaining the engineer’s role beyond Mara’s tutorial dialogue.
 
 ### Unlocks
 - Base movement kit (no gadgets yet)
 
 ### Exit
-→ Level 2: Power Plant (`scenes/power_plant.tscn` via plant door)
+→ Level 2: Power Plant (`scenes/power_plant.tscn` via plant door; Mara escorts after blackout)
 
 ---
 
@@ -66,36 +65,63 @@
 
 | | |
 |---|---|
-| **Scene** | planned — `scenes/power_plant.tscn` |
-| **Status** | planned |
+| **Scene** | `scenes/power_plant.tscn` + `scenes/power_plant_basement.tscn` |
+| **Status** | partial |
 
 ### Story beat
-- Player investigates the shutdown.
-- Discovers the broken component — **the tenth failure**.
-- Learns the river is dry; the part keeps failing because the system is starved of water.
+- Mara escorts the player to the plant after a courtyard blackout.
+- Ashford (sister village) was expected to broadcast tonight; without power the village radio is dead.
+- Player investigates the shutdown via the diagnostic console (slide puzzle + fault log).
+- Main hydro is still broken (tenth relay failure, dry intake).
+- Player activates the **emergency battery** in the basement to restore radio power.
+- Ashford broadcast introduces the pre-war archive supercomputer expedition.
+- Return to village with `radio_broadcast_received` — mission briefing stub unlocks Level 3.
 
 ### Environment
 - Industrial interior: turbines, pipes, control panels, catwalks.
-- Audible silence where water should flow.
-- Broken part is visible and interactable.
+- Basement sub-level: vertical descent, overrun by zombies, emergency battery bank at the bottom.
 
 ### Gameplay
-- **Investigation / puzzle** — trace the failure to the dry river intake.
-- Optional light platforming on catwalks.
-- No combat or minimal hazard (steam, sparks).
+- **Investigation / puzzle** — diagnostic slide puzzle → fault log.
+- **First story combat** — zombie waves in the basement (jump platforming descent).
+- **Interact objective** — emergency battery switch at basement bottom.
 
 ### Must include
-- [ ] Broken component set piece (inspectable)
-- [ ] River intake / dry channel visual
-- [ ] Dialogue or log: "This is the tenth time."
-- [ ] Return path to village with new story state
+- [x] Broken component set piece (visual + fault log)
+- [x] River intake / dry channel visual
+- [x] Dialogue or log: tenth failure reference
+- [x] Return path to village with new story state
+- [x] Mara escort from village to plant
+- [x] Emergency battery basement map
+- [x] Ashford radio broadcast
 
 ### Unlocks
-- Story flag: `plant_component_failed`
-- Engineer wrench / interact tool (if not already present)
+- Story flags: `plant_component_failed`, `emergency_battery_active`, `radio_broadcast_received`
+- Partial village lighting via emergency power
 
 ### Exit
-→ Level 1 (village) with updated NPC dialogue, then Level 3
+→ Level 1 (village) with mission briefing stub, then Level 3
+
+---
+
+## Level 2b — Power Plant Basement
+
+| | |
+|---|---|
+| **Scene** | `scenes/power_plant_basement.tscn` |
+| **Status** | partial |
+
+### Story beat
+- Player descends alone (Mara waits upstairs) to turn on emergency battery power.
+- Radio crackles alive with Ashford's call for volunteers to find the archive computer.
+
+### Gameplay
+- Vertical platform descent (`MAP_SIZE` 1600×2800).
+- ~10 zombies in waves as the player goes deeper.
+- `E` at emergency battery switch → two-part radio dialogue sequence.
+
+### Exit
+→ Level 2 plant interior (`return_from_basement` meta), then village
 
 ---
 
@@ -104,9 +130,10 @@
 | | |
 |---|---|
 | **Scene** | `scenes/the_village.tscn` (story state variant) |
-| **Status** | planned |
+| **Status** | partial (stub dialogue implemented) |
 
 ### Story beat
+- Ashford broadcast heard; village council assembles a mission party (stub dialogue via Mara).
 - Rumors of the pre-war archive computer spread through the village.
 - A mission party is assembled and given the truck.
 - Player is **explicitly denied** — too critical to the plant.
@@ -120,7 +147,7 @@
 - **Stealth / stowaway moment** — sneak onto the truck without being caught.
 
 ### Must include
-- [ ] Mission briefing trigger (NPC or cutscene)
+- [x] Mission briefing trigger (Mara stub after `radio_broadcast_received`)
 - [ ] "You can't go" refusal moment
 - [ ] Truck staging area
 - [ ] Stowaway success condition → load Level 4
@@ -445,8 +472,8 @@
 | Level | Name | Gadget / unlock | Grid |
 |---|---|---|---|
 | 1 | River City | Movement | — |
-| 2 | Power Plant | Investigation | — |
-| 3 | Mission Briefing | Stowaway | — |
+| 2 | Power Plant + Basement | Investigation, first combat, radio | — |
+| 3 | Mission Briefing | Stowaway (stub) | — |
 | 4 | The Road Out | — | — |
 | 5 | Ambush | Comm device, combat | — |
 | 6 | Wasteland Passage | Gadget 1, crafting | — |

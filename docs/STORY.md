@@ -26,11 +26,17 @@ You find a critical component has failed — **again**. This is the **tenth time
 
 The village cannot survive like this much longer.
 
+### The Broadcast
+
+Mara explains that **Ashford**, a sister settlement, was supposed to transmit on the relay band tonight. Without plant power the village radio is dead.
+
+After the diagnostic confirms the main hydro is still broken, the engineer restores **emergency battery power** in the plant basement — fighting through zombies that have overrun the lower levels.
+
+The battery flickers on. Ashford's broadcast comes through: survivors are organizing an expedition to locate a **pre-war archive supercomputer** — a machine that may hold all the knowledge lost in the war. They ask any settlement with working comms to relay the call and send volunteers.
+
 ### The Rumor
 
-Word spreads of an **old computer from before the war** — a machine that supposedly holds **all the knowledge of the world before the bombs**. Blueprints. Agriculture. Medicine. Power systems. Everything humanity lost.
-
-If the stories are true, that archive could save the settlement — and maybe others.
+Word spreads through River City after the broadcast — no longer just whispers.
 
 ### The Mission You Weren't Allowed to Join
 

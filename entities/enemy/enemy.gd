@@ -19,6 +19,8 @@ const PLAYER_JUMP_RANGE_X := 160.0
 const PLAYER_JUMP_RANGE_Y := 18.0
 const STEP_UP_THRESHOLD := 8.0
 const PLATFORM_LOOKAHEAD := 150.0
+const LEDGE_LOOKAHEAD := 24.0
+const LEDGE_DROP_CHECK := 64.0
 const JUMP_TRIGGER_MIN_GAP := 28.0
 const JUMP_TRIGGER_MAX_GAP := 120.0
 const WORLD_COLLISION_MASK := 2
@@ -157,9 +159,21 @@ func _physics_process(delta: float) -> void:
 	var direction := chase_direction
 	if _forced_direction != 0.0:
 		direction = _forced_direction
+		if is_on_floor() and _should_stop_at_ledge(_forced_direction, false):
+			direction = 0.0
+			_forced_direction = 0.0
+			_reverse_timer = 0.0
+	elif chase_direction != 0.0 and is_on_floor() and _should_stop_at_ledge(chase_direction):
+		direction = 0.0
+
+	if _forced_direction != 0.0:
 		_update_animation(_forced_direction)
-	elif chase_direction != 0.0:
-		_update_animation(chase_direction)
+	elif direction != 0.0:
+		_update_animation(direction)
+	elif chase_direction != 0.0 and _attack_cooldown <= 0.0:
+		animated_sprite.flip_h = chase_direction < 0.0
+		if animated_sprite.animation != "idle":
+			animated_sprite.play("idle")
 
 	var jumped := false
 	if (
@@ -211,6 +225,30 @@ func _get_ground_move_speed() -> float:
 	var distance := absf(_player.global_position.x - global_position.x)
 	var blend := 1.0 - clampf(distance / NEAR_PLAYER_RANGE, 0.0, 1.0)
 	return lerpf(PATROL_SPEED, SPEED, blend)
+
+
+func _should_stop_at_ledge(direction: float, allow_jump_override: bool = true) -> bool:
+	if direction == 0.0 or not is_on_floor():
+		return false
+	if _has_ground_ahead(direction):
+		return false
+	if allow_jump_override and _wants_jump(direction):
+		return false
+	return true
+
+
+func _has_ground_ahead(direction: float) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var exclude: Array[RID] = [get_rid()]
+	var feet_y := global_position.y
+	var sample_offsets: Array[float] = [HALF_WIDTH + 4.0, HALF_WIDTH + LEDGE_LOOKAHEAD]
+	for offset in sample_offsets:
+		var ahead_x := global_position.x + direction * offset
+		var from := Vector2(ahead_x, feet_y - 4.0)
+		var to := Vector2(ahead_x, feet_y + LEDGE_DROP_CHECK)
+		if _raycast(space_state, from, to, exclude).is_empty():
+			return false
+	return true
 
 
 func _check_world_stuck(chase_direction: float, previous_x: float) -> void:

@@ -22,9 +22,9 @@ const ENEMY_SPAWN_BODY_HALF_WIDTH := 14.0
 const ENEMY_SPAWN_PLATFORM_MARGIN := 10.0
 const PLATFORM_SURFACE_OFFSET := 8.0
 const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
-const CAMERA_ZOOM_MULTIPLIER := 4.29
-const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 0.9
-const DEATH_RESTART_META := "death_restart"
+const CAMERA_ZOOM_MULTIPLIER := 10.0
+const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 2.25
+const SCENE_PATH := "res://scenes/main.tscn"
 
 @onready var player: CharacterBody2D = $Player
 @onready var map_camera: Camera2D = $MapCamera
@@ -78,9 +78,13 @@ func _ready() -> void:
 	player.health_changed.connect(_on_player_health_changed)
 	boss_gun.defeated.connect(_on_boss_defeated)
 
-	if get_tree().has_meta(DEATH_RESTART_META):
-		get_tree().remove_meta(DEATH_RESTART_META)
+	if SaveManager.is_death_respawn():
+		SaveManager.clear_death_respawn()
 		call_deferred("_start_level_from_beginning")
+	elif SaveManager.consume_pending_resume(SCENE_PATH):
+		call_deferred("_apply_saved_resume")
+	else:
+		hud.show_start_screen("Dusk Arena")
 
 
 func _process(delta: float) -> void:
@@ -142,7 +146,7 @@ func _setup_map_camera() -> void:
 		viewport_size.y * MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO / MAP_SIZE.y
 	)
 	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
-	map_camera.zoom = Vector2(zoom_factor, zoom_factor)
+	map_camera.configure(zoom_factor, MAP_SIZE)
 	var half_view := viewport_size / (2.0 * zoom_factor)
 	var initial_y := MAP_SIZE.y * 0.5 if half_view.y >= MAP_SIZE.y * 0.5 else player.global_position.y
 	map_camera.position = Vector2(player.global_position.x, initial_y)
@@ -471,8 +475,17 @@ func _platform_pickup_position(platform: Node2D) -> Vector2:
 
 func _on_player_died() -> void:
 	get_tree().paused = false
-	get_tree().set_meta(DEATH_RESTART_META, true)
-	get_tree().call_deferred("reload_current_scene")
+	SaveManager.handle_player_death()
+
+
+func _apply_saved_resume() -> void:
+	SaveManager.apply_resume_spawn(player)
+	hud.hide_menu()
+	player.set_physics_process(true)
+	_phase = GamePhase.PRE_START
+	_phase_timer = ENEMY_SPAWN_DELAY
+	hud.start_countdown("Enemies spawn in")
+	hud.update_countdown(_phase_timer)
 
 
 func _on_boss_defeated() -> void:
@@ -497,6 +510,7 @@ func _start_level_from_beginning() -> void:
 	_phase_timer = ENEMY_SPAWN_DELAY
 	hud.start_countdown("Enemies spawn in")
 	hud.update_countdown(_phase_timer)
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
 func _on_play_pressed() -> void:

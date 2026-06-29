@@ -467,6 +467,17 @@ func die() -> void:
 		_start_death_animation()
 
 
+func die_from_void() -> void:
+	if is_dead:
+		return
+
+	is_dead = true
+	_fire_pose_timer = 0.0
+	if super_weapon_active:
+		_deactivate_super_weapon()
+	_start_death_animation()
+
+
 func should_camera_follow() -> bool:
 	return not _death_animation_started
 
@@ -505,6 +516,25 @@ func _on_death_animation_finished() -> void:
 	if animated_sprite.animation != "death":
 		return
 	died.emit()
+
+
+func reset_after_death() -> void:
+	is_dead = false
+	_death_animation_started = false
+	health = MAX_HEALTH
+	velocity = Vector2.ZERO
+	_stun_timer = 0.0
+	_invincibility_timer = 0.5
+	_coyote_timer = 0.0
+	_jump_buffer_timer = 0.0
+	_double_jump_available = false
+	if super_weapon_active:
+		_deactivate_super_weapon()
+	animated_sprite.modulate = _normal_modulate
+	_apply_stance(STAND_HEIGHT)
+	animated_sprite.play("idle")
+	set_physics_process(true)
+	health_changed.emit(health, MAX_HEALTH)
 
 
 func _apply_stance(height: float) -> void:

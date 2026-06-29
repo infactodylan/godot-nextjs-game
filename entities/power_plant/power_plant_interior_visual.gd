@@ -6,6 +6,7 @@ const CEILING_Y := 120.0
 
 var power_on := true
 var diagnostics_complete := false
+var basement_unlocked := false
 var _turbine_phase := 0.0
 var _pump_phase := 0.0
 var _belt_phase := 0.0
@@ -26,6 +27,11 @@ func set_power_on(on: bool) -> void:
 
 func set_diagnostics_complete(complete: bool) -> void:
 	diagnostics_complete = complete
+	queue_redraw()
+
+
+func set_basement_unlocked(unlocked: bool) -> void:
+	basement_unlocked = unlocked
 	queue_redraw()
 
 
@@ -59,6 +65,7 @@ func _draw() -> void:
 	_draw_broken_component()
 	_draw_intake_channel()
 	_draw_entrance_door()
+	_draw_basement_access()
 	if not power_on:
 		draw_rect(Rect2(0.0, CEILING_Y, MAP_WIDTH, FLOOR_Y - CEILING_Y), Color(0.0, 0.0, 0.0, 0.42))
 
@@ -325,3 +332,46 @@ func _draw_entrance_door() -> void:
 	draw_rect(Rect2(door_x, door_top, 72.0, 132.0), frame)
 	draw_rect(Rect2(door_x + 8.0, door_top + 12.0, 56.0, 108.0), door)
 	draw_line(Vector2(door_x + 36.0, door_top + 18.0), Vector2(door_x + 36.0, door_top + 114.0), frame.lightened(0.08), 2.0)
+
+
+func _draw_basement_access() -> void:
+	var wing_x := 2380.0
+	var frame := Color(0.18, 0.16, 0.14) if power_on else Color(0.1, 0.09, 0.08)
+	var floor_trim := Color(0.24, 0.22, 0.2) if power_on else Color(0.12, 0.11, 0.1)
+
+	draw_rect(Rect2(wing_x, FLOOR_Y - 28.0, 1180.0, 28.0), floor_trim)
+	for i in 5:
+		var marker_x := wing_x + 80.0 + i * 220.0
+		draw_rect(Rect2(marker_x, FLOOR_Y - 34.0, 18.0, 6.0), frame.lightened(0.06))
+
+	var stair_x := 2720.0
+	for step in 6:
+		var step_y := FLOOR_Y - 28.0 - step * 18.0
+		var step_w := 120.0 + step * 8.0
+		draw_rect(Rect2(stair_x - step_w * 0.5, step_y - 14.0, step_w, 14.0), frame.darkened(0.04))
+
+	var hatch_x := 2760.0
+	var hatch_top := FLOOR_Y - 148.0
+	draw_rect(Rect2(hatch_x, hatch_top, 96.0, 148.0), frame)
+	draw_rect(Rect2(hatch_x + 10.0, hatch_top + 12.0, 76.0, 124.0), Color(0.08, 0.07, 0.06))
+	draw_line(
+		Vector2(hatch_x + 48.0, hatch_top + 20.0),
+		Vector2(hatch_x + 48.0, hatch_top + 128.0),
+		frame.lightened(0.1),
+		2.0
+	)
+
+	var sign_color := Color(0.85, 0.72, 0.22) if basement_unlocked else Color(0.42, 0.38, 0.32)
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(hatch_x - 28.0, hatch_top - 18.0),
+		"EMERGENCY POWER — BASEMENT",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		18,
+		sign_color
+	)
+
+	if basement_unlocked:
+		draw_circle(Vector2(hatch_x + 48.0, hatch_top + 64.0), 34.0, Color(1.0, 0.85, 0.25, 0.12))
+		draw_rect(Rect2(hatch_x + 40.0, hatch_top + 56.0, 16.0, 16.0), Color(1.0, 0.85, 0.25, 0.85))

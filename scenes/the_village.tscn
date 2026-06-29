@@ -10,29 +10,30 @@
 [ext_resource type="Script" uid="uid://b0an082l0qws6" path="res://scenes/farmland_foliage.gd" id="10_foliage"]
 [ext_resource type="Script" uid="uid://ihyusd76wxen" path="res://entities/power_plant/power_plant.gd" id="11_power_plant"]
 [ext_resource type="Script" uid="uid://qb2s22vau3et" path="res://entities/power_plant/power_plant_visual.gd" id="12_power_plant_visual"]
-[ext_resource type="Script" path="res://scenes/village_sky_backdrop.gd" id="13_sky_backdrop"]
-[ext_resource type="Script" path="res://entities/village_courtyard/village_courtyard.gd" id="14_courtyard"]
-[ext_resource type="Script" path="res://entities/power_plant/power_plant_ambience_zone.gd" id="15_plant_ambience"]
-[ext_resource type="Script" path="res://entities/interact_zone/interact_zone.gd" id="16_interact_zone"]
-[ext_resource type="Script" path="res://scenes/village_tutorial.gd" id="17_tutorial"]
+[ext_resource type="Script" uid="uid://c5h22xbkm7t1s" path="res://scenes/village_sky_backdrop.gd" id="13_sky_backdrop"]
+[ext_resource type="Script" uid="uid://b343elyy70mwo" path="res://entities/village_courtyard/village_courtyard.gd" id="14_courtyard"]
+[ext_resource type="Script" uid="uid://2ra63krmbadr" path="res://entities/power_plant/power_plant_ambience_zone.gd" id="15_plant_ambience"]
+[ext_resource type="Script" uid="uid://c81e4es7ymstf" path="res://entities/interact_zone/interact_zone.gd" id="16_interact_zone"]
+[ext_resource type="Script" uid="uid://dm8w7pisadr0" path="res://scenes/village_tutorial.gd" id="17_tutorial"]
+[ext_resource type="Script" uid="uid://b2ohxlyyxcogf" path="res://scenes/map_camera.gd" id="18_map_camera"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(7800, 80)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_platform"]
-size = Vector2(180, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_gate"]
-size = Vector2(220, 140)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_courtyard"]
-size = Vector2(1300, 180)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_plant_ambience"]
-size = Vector2(900, 320)
+size = Vector2(180, 88)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_plant_door"]
 size = Vector2(220, 160)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_plant_ambience"]
+size = Vector2(1196, 580)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_courtyard"]
+size = Vector2(1300, 655)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gate"]
+size = Vector2(220, 140)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pickup_banner"]
 content_margin_left = 20.0
@@ -48,12 +49,13 @@ script = ExtResource("1_vmain")
 
 [node name="MapCamera" type="Camera2D" parent="." unique_id=499401397]
 position = Vector2(3589, 343)
+script = ExtResource("18_map_camera")
 
-[node name="SkyCanvas" type="CanvasLayer" parent="."]
+[node name="SkyCanvas" type="CanvasLayer" parent="." unique_id=304917163]
 layer = -100
 follow_viewport_enabled = true
 
-[node name="SkyFill" type="ColorRect" parent="SkyCanvas"]
+[node name="SkyFill" type="ColorRect" parent="SkyCanvas" unique_id=558276275]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -114,7 +116,7 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform3" unique_id=2058968715]
-position = Vector2(0, 8)
+position = Vector2(0, 36)
 shape = SubResource("RectangleShape2D_platform")
 
 [node name="Platform4" type="StaticBody2D" parent="Platforms" unique_id=537296847 groups=["platform"]]
@@ -264,28 +266,30 @@ script = ExtResource("11_power_plant")
 [node name="Visual" type="Node2D" parent="PowerPlant" unique_id=71352069]
 script = ExtResource("12_power_plant_visual")
 
-[node name="EntryDoor" type="Area2D" parent="PowerPlant"]
+[node name="EntryDoor" type="Area2D" parent="PowerPlant" unique_id=1372614857]
 position = Vector2(-48, -36)
 script = ExtResource("16_interact_zone")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="PowerPlant/EntryDoor"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PowerPlant/EntryDoor" unique_id=1527308898]
 position = Vector2(48, -12)
 shape = SubResource("RectangleShape2D_plant_door")
 
-[node name="PowerPlantAmbienceZone" type="Area2D" parent="."]
+[node name="PowerPlantAmbienceZone" type="Area2D" parent="." unique_id=1229547414]
 position = Vector2(2280, 760)
 script = ExtResource("15_plant_ambience")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="PowerPlantAmbienceZone"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PowerPlantAmbienceZone" unique_id=1967120418]
+position = Vector2(33, -130)
 shape = SubResource("RectangleShape2D_plant_ambience")
 
 [node name="Pickups" type="Node2D" parent="." unique_id=1742652088]
 
-[node name="CourtyardGate" type="Area2D" parent="."]
+[node name="CourtyardGate" type="Area2D" parent="." unique_id=1441845666]
 position = Vector2(4320, 780)
 script = ExtResource("14_courtyard")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CourtyardGate"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CourtyardGate" unique_id=203768080]
+position = Vector2(0, -237.5)
 shape = SubResource("RectangleShape2D_courtyard")
 
 [node name="WastelandGate" type="Area2D" parent="." unique_id=2007636794]
@@ -298,7 +302,7 @@ shape = SubResource("RectangleShape2D_gate")
 [node name="Player" parent="." unique_id=1783904878 instance=ExtResource("2_player")]
 position = Vector2(200, 820)
 
-[node name="TutorialGuide" type="Node2D" parent="."]
+[node name="TutorialGuide" type="Node2D" parent="." unique_id=272113378]
 position = Vector2(620, 820)
 script = ExtResource("17_tutorial")
 
