@@ -1,21 +1,23 @@
 [gd_scene format=3 uid="uid://wastelands1"]
 
-[ext_resource type="Script" path="res://scenes/waste_lands.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://dpyqp1nix3jln" path="res://scenes/waste_lands.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://bplayer001" path="res://player/player.tscn" id="2_player"]
-[ext_resource type="PackedScene" uid="uid://enemy001" path="res://entities/enemy/enemy.tscn" id="3_enemy"]
 [ext_resource type="PackedScene" uid="uid://bossgun001" path="res://entities/boss_gun/boss_gun.tscn" id="4_boss"]
 [ext_resource type="Script" uid="uid://dfx0r38xxqeij" path="res://scenes/hud.gd" id="5_hud"]
 [ext_resource type="Script" uid="uid://b21ryxj5ubnwd" path="res://scenes/pickup_arrow.gd" id="6_pickup_arrow"]
 [ext_resource type="PackedScene" uid="uid://duskbg001" path="res://scenes/dusk_background.tscn" id="7_dusk"]
-[ext_resource type="Script" path="res://scenes/platforms_setup.gd" id="8_platforms"]
-[ext_resource type="Script" path="res://entities/wasteland_gate/wasteland_gate.gd" id="9_gate"]
-[ext_resource type="Script" path="res://scenes/map_camera.gd" id="10_map_camera"]
+[ext_resource type="Script" uid="uid://clbuk6li5iint" path="res://scenes/platforms_setup.gd" id="8_platforms"]
+[ext_resource type="Script" uid="uid://d2ns3u0fecer4" path="res://entities/wasteland_gate/wasteland_gate.gd" id="9_gate"]
+[ext_resource type="Script" uid="uid://b2ohxlyyxcogf" path="res://scenes/map_camera.gd" id="10_map_camera"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(3600, 80)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_platform"]
 size = Vector2(180, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_village_gate"]
+size = Vector2(160, 140)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pickup_banner"]
 content_margin_left = 20.0
@@ -26,9 +28,6 @@ bg_color = Color(0.05, 0.08, 0.16, 0.88)
 border_width_bottom = 3
 border_color = Color(1, 0.9, 0.35, 0.9)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_village_gate"]
-size = Vector2(160, 140)
-
 [node name="WasteLands" type="Node2D" unique_id=1093160678]
 script = ExtResource("1_main")
 
@@ -36,7 +35,7 @@ script = ExtResource("1_main")
 position = Vector2(1800, 450)
 script = ExtResource("10_map_camera")
 
-[node name="DuskBackground" parent="." instance=ExtResource("7_dusk")]
+[node name="DuskBackground" parent="." unique_id=9346482 instance=ExtResource("7_dusk")]
 
 [node name="Ground" type="StaticBody2D" parent="." unique_id=1351209560]
 position = Vector2(1800, 860)
@@ -81,7 +80,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Platform3" type="StaticBody2D" parent="Platforms" unique_id=1661939379 groups=["platform"]]
 position = Vector2(860, 583)
 collision_layer = 2
@@ -90,7 +88,6 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform3" unique_id=2058968715]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
-
 
 [node name="Platform4" type="StaticBody2D" parent="Platforms" unique_id=537296847 groups=["platform"]]
 position = Vector2(1080, 513)
@@ -101,7 +98,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Platform5" type="StaticBody2D" parent="Platforms" unique_id=1900678590 groups=["platform"]]
 position = Vector2(1500, 653)
 collision_layer = 2
@@ -110,7 +106,6 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform5" unique_id=500844111]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
-
 
 [node name="Platform6" type="StaticBody2D" parent="Platforms" unique_id=1129112141 groups=["platform"]]
 position = Vector2(1850, 583)
@@ -121,7 +116,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Platform7" type="StaticBody2D" parent="Platforms" unique_id=1761243830 groups=["platform"]]
 position = Vector2(2650, 723)
 collision_layer = 2
@@ -130,7 +124,6 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform7" unique_id=1309075556]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
-
 
 [node name="Platform8" type="StaticBody2D" parent="Platforms" unique_id=332312848 groups=["platform"]]
 position = Vector2(3050, 583)
@@ -141,7 +134,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Platform9" type="StaticBody2D" parent="Platforms" unique_id=1613862612 groups=["platform"]]
 position = Vector2(3350, 513)
 collision_layer = 2
@@ -150,7 +142,6 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform9" unique_id=986022919]
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
-
 
 [node name="Platform10" type="StaticBody2D" parent="Platforms" unique_id=312087564 groups=["platform"]]
 position = Vector2(3500, 723)
@@ -161,7 +152,6 @@ collision_mask = 0
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_platform")
 
-
 [node name="Enemies" type="Node2D" parent="." unique_id=101524521]
 
 [node name="Wave1" type="Node2D" parent="Enemies" unique_id=1593966258]
@@ -170,18 +160,19 @@ shape = SubResource("RectangleShape2D_platform")
 
 [node name="Pickups" type="Node2D" parent="." unique_id=1742652088]
 
-[node name="VillageGate" type="Area2D" parent="."]
+[node name="VillageGate" type="Area2D" parent="." unique_id=1463437599]
 position = Vector2(110, 780)
 script = ExtResource("9_gate")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="VillageGate"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="VillageGate" unique_id=5175698]
+position = Vector2(-32, -1)
 shape = SubResource("RectangleShape2D_village_gate")
 
 [node name="BossGun" parent="." unique_id=1816034137 instance=ExtResource("4_boss")]
 position = Vector2(3600, 820)
 
 [node name="Player" parent="." unique_id=1783904878 instance=ExtResource("2_player")]
-position = Vector2(200, 820)
+position = Vector2(89, 814)
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=2015981725]
 script = ExtResource("5_hud")
@@ -216,7 +207,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("6_pickup_arrow")
 
-[node name="HealthArrow" type="Control" parent="HUD/PickupGuides"]
+[node name="HealthArrow" type="Control" parent="HUD/PickupGuides" unique_id=1054749884]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -226,19 +217,17 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("6_pickup_arrow")
 
-[node name="PauseOverlay" type="ColorRect" parent="HUD"]
+[node name="PauseOverlay" type="ColorRect" parent="HUD" unique_id=198162648]
 visible = false
 z_index = 50
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.45)
 
-[node name="PauseLabel" type="Label" parent="HUD/PauseOverlay"]
+[node name="PauseLabel" type="Label" parent="HUD/PauseOverlay" unique_id=1717308916]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -292,13 +281,13 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 34
 text = "20s"
 
-[node name="HealthRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox"]
+[node name="HealthRow" type="HBoxContainer" parent="HUD/PickupBanner/BannerMargin/BannerVBox" unique_id=157167199]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="HealthText" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow"]
+[node name="HealthText" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow" unique_id=182023443]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.35, 0.95, 0.45, 1)
@@ -306,7 +295,7 @@ theme_override_font_sizes/font_size = 34
 text = "HEALTH POTION — GET HEALING"
 horizontal_alignment = 1
 
-[node name="HealthTimer" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow"]
+[node name="HealthTimer" type="Label" parent="HUD/PickupBanner/BannerMargin/BannerVBox/HealthRow" unique_id=2112661761]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 34
@@ -334,7 +323,6 @@ text = "5s"
 
 [node name="CountdownCenter" type="CenterContainer" parent="HUD" unique_id=185703758]
 z_index = 100
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -360,7 +348,6 @@ text = "5"
 horizontal_alignment = 1
 
 [node name="MarginContainer" type="MarginContainer" parent="HUD" unique_id=868172383]
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -399,7 +386,7 @@ theme_override_colors/font_color = Color(1, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 28
 text = "Boss HP: 20/20"
 
-[node name="WaveLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+[node name="WaveLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer" unique_id=1321378682]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.55, 1)
 theme_override_font_sizes/font_size = 28
@@ -411,9 +398,8 @@ theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
 theme_override_font_sizes/font_size = 34
 text = "Game Over — press R to restart"
 
-[node name="MenuOverlay" type="ColorRect" parent="HUD"]
+[node name="MenuOverlay" type="ColorRect" parent="HUD" unique_id=13750200]
 z_index = 300
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -421,7 +407,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.02, 0.05, 0.12, 0.82)
 
-[node name="MenuCenter" type="CenterContainer" parent="HUD/MenuOverlay"]
+[node name="MenuCenter" type="CenterContainer" parent="HUD/MenuOverlay" unique_id=2055217192]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -429,19 +415,19 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MenuVBox" type="VBoxContainer" parent="HUD/MenuOverlay/MenuCenter"]
+[node name="MenuVBox" type="VBoxContainer" parent="HUD/MenuOverlay/MenuCenter" unique_id=765544827]
 layout_mode = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="MenuTitle" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+[node name="MenuTitle" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox" unique_id=1797275237]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.35, 1)
 theme_override_font_sizes/font_size = 72
 text = "Waste Lands"
 horizontal_alignment = 1
 
-[node name="MenuMessage" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+[node name="MenuMessage" type="Label" parent="HUD/MenuOverlay/MenuCenter/MenuVBox" unique_id=886360329]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
@@ -449,16 +435,15 @@ theme_override_font_sizes/font_size = 32
 text = "Better luck next time."
 horizontal_alignment = 1
 
-[node name="MenuButton" type="Button" parent="HUD/MenuOverlay/MenuCenter/MenuVBox"]
+[node name="MenuButton" type="Button" parent="HUD/MenuOverlay/MenuCenter/MenuVBox" unique_id=182714559]
 custom_minimum_size = Vector2(220, 56)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 32
 text = "Play"
 
-[node name="TopRightControls" type="HBoxContainer" parent="HUD"]
+[node name="TopRightControls" type="HBoxContainer" parent="HUD" unique_id=1335954673]
 z_index = 301
-layout_mode = 3
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -470,13 +455,13 @@ grow_horizontal = 0
 theme_override_constants/separation = 8
 alignment = 2
 
-[node name="MuteButton" type="Button" parent="HUD/TopRightControls"]
+[node name="MuteButton" type="Button" parent="HUD/TopRightControls" unique_id=1195613449]
 custom_minimum_size = Vector2(90, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Mute"
 
-[node name="PauseButton" type="Button" parent="HUD/TopRightControls"]
+[node name="PauseButton" type="Button" parent="HUD/TopRightControls" unique_id=29215762]
 custom_minimum_size = Vector2(90, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
