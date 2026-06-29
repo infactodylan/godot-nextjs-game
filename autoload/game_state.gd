@@ -131,6 +131,32 @@ func mark_mara_broadcast_reaction_complete() -> void:
 	SaveManager.on_state_changed()
 
 
+func reset_from_objective_index(from_index: int) -> void:
+	if from_index <= 0:
+		controls_tutorial_complete = false
+	if from_index <= 1:
+		plant_blackout_triggered = false
+		blackout_dialogue_complete = false
+		plant_power_on = true
+		mara_escorting = false
+	if from_index <= 2:
+		plant_diagnostic_puzzle_complete = false
+		plant_component_failed = false
+	if from_index <= 3:
+		battery_dialogue_complete = false
+		mara_escorting = false
+	if from_index <= 4:
+		emergency_battery_active = false
+		radio_broadcast_received = false
+	if from_index <= 5:
+		mara_broadcast_reaction_complete = false
+		mara_escorting = false
+	if from_index <= 6:
+		mission_briefing_stub_complete = false
+		mara_escorting = false
+	SaveManager.on_state_changed()
+
+
 func apply_from_save(data: Dictionary) -> void:
 	if data.is_empty():
 		return

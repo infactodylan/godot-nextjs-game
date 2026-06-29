@@ -78,6 +78,31 @@ func consume_scene_entry(scene_path: String) -> String:
 	return kind
 
 
+func prepare_objective_replay(scene_path: String) -> void:
+	_pending_resume = false
+	_pending_scene_entry = ""
+	_pending_scene_entry_kind = ""
+	_current_scene = scene_path
+	_player_position = Vector2.ZERO
+	_room_entry_scene = ""
+	_room_entry_position = Vector2.ZERO
+	_play_session_active = true
+	save_now()
+
+
+func is_objective_replay() -> bool:
+	return get_tree().has_meta(StoryObjectives.OBJECTIVE_REPLAY_META)
+
+
+func consume_objective_replay() -> String:
+	if not get_tree().has_meta(StoryObjectives.OBJECTIVE_REPLAY_META):
+		return ""
+	var replay_id: String = str(get_tree().get_meta(StoryObjectives.OBJECTIVE_REPLAY_META))
+	get_tree().remove_meta(StoryObjectives.OBJECTIVE_REPLAY_META)
+	StoryObjectives.consume_replay_id()
+	return replay_id
+
+
 func is_death_respawn() -> bool:
 	return get_tree().has_meta(DEATH_RESPAWN_META)
 

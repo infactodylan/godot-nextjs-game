@@ -84,6 +84,8 @@ func _ready() -> void:
 		call_deferred("_apply_saved_resume")
 	elif get_tree().has_meta(RETURN_FROM_BASEMENT_META):
 		call_deferred("_apply_basement_return")
+	elif SaveManager.is_objective_replay():
+		call_deferred("_apply_objective_replay_entry")
 	elif get_tree().has_meta("power_plant_entry"):
 		call_deferred("_apply_village_entry")
 	else:
@@ -474,7 +476,7 @@ func _setup_map_camera() -> void:
 	var zoom_factor := _compute_camera_zoom(viewport_size)
 	map_camera.configure(zoom_factor, MAP_SIZE)
 	map_camera.make_current()
-	_snap_camera_to_player(viewport_size, zoom_factor)
+	_snap_camera_to_player(viewport_size)
 
 
 func _viewport_size() -> Vector2:
@@ -532,6 +534,34 @@ func _apply_village_entry() -> void:
 		call_deferred("_show_mara_broadcast_reaction")
 	elif GameState.is_battery_dialogue_complete():
 		call_deferred("_sync_basement_guide_arrow")
+	_register_room_entry()
+
+
+func _apply_objective_replay_entry() -> void:
+	var objective_id := SaveManager.consume_objective_replay()
+	_reset_play_state()
+	_place_player_at_interior_door()
+	hud.hide_menu()
+	player.set_physics_process(true)
+	_phase = GamePhase.PLAYING
+	_spawn_mara_if_needed()
+	_configure_interior_power()
+	_snap_camera_to_player()
+	interior_visual.queue_redraw()
+	match objective_id:
+		"battery_briefing":
+			call_deferred("_show_battery_dialogue_chain")
+		"plant_debrief":
+			GameState.mark_mara_escorting(true)
+			if mara_companion:
+				mara_companion.visible = true
+				mara_companion.teleport_near_player()
+				if mara_companion.has_method("start_idle_near"):
+					mara_companion.call("start_idle_near", player)
+			call_deferred("_show_mara_broadcast_reaction")
+		"plant_investigation":
+			if interior_visual.has_method("set_diagnostics_complete"):
+				interior_visual.call("set_diagnostics_complete", false)
 	_register_room_entry()
 
 

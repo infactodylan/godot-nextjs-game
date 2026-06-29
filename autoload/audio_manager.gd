@@ -8,12 +8,15 @@ const BOSS_GUNSHOT := preload("res://assets/audio/boss_gunshot.mp3")
 const PLAYER_RELOAD := preload("res://assets/audio/player_reload.mp3")
 const POWER_DOWN := preload("res://assets/audio/power_down.mp3")
 const ELECTRIC_ZAP := preload("res://assets/audio/electric_zap.mp3")
-const BASEMENT_DRIPPY_CAVE := preload("res://assets/audio/basement_drippy_cave.mp3")
+const SUSPENSFUL_MOMENT := preload("res://assets/audio/suspensful_moment.mp3")
 const BASEMENT_CAVE_MONSTER := preload("res://assets/audio/basement_cave_monster.mp3")
 const BASEMENT_CAVE_WIND := preload("res://assets/audio/basement_cave_wind.mp3")
+const BASEMENT_WATER_DRIP := preload("res://assets/audio/basement_water_drip.mp3")
+const RADIO_STATIC := preload("res://assets/audio/radio_static.mp3")
 const TRACTOR_AMBIENCE := preload("res://assets/audio/tractor_ambience.mp3")
 
 const BASEMENT_WIND_DB := -12.0
+const BASEMENT_DRIP_DB := -18.0
 
 const TRACTOR_FADE_SECONDS := 2.0
 const TRACTOR_SILENT_DB := -80.0
@@ -41,7 +44,9 @@ var _tractor_player: AudioStreamPlayer
 var _tractor_current_db := TRACTOR_SILENT_DB
 var _tractor_player_near := false
 var _basement_wind_player: AudioStreamPlayer
+var _basement_drip_player: AudioStreamPlayer
 var _basement_ambience_active := false
+var _suspensful_moment_scene_id := -1
 
 
 func _ready() -> void:
@@ -76,6 +81,11 @@ func _ready() -> void:
 	_basement_wind_player.name = "BasementCaveWind"
 	_basement_wind_player.volume_db = BASEMENT_WIND_DB
 	add_child(_basement_wind_player)
+
+	_basement_drip_player = AudioStreamPlayer.new()
+	_basement_drip_player.name = "BasementWaterDrip"
+	_basement_drip_player.volume_db = BASEMENT_DRIP_DB
+	add_child(_basement_drip_player)
 	set_process(true)
 
 
@@ -148,17 +158,22 @@ func play_basement_ambience() -> void:
 	stop_village_ambience()
 	_basement_ambience_active = true
 	_tractor_player_near = false
-	if _basement_wind_player.playing:
-		return
-	var stream := BASEMENT_CAVE_WIND.duplicate() as AudioStreamMP3
-	stream.loop = true
-	_basement_wind_player.stream = stream
-	_basement_wind_player.play()
+	if not _basement_wind_player.playing:
+		var wind := BASEMENT_CAVE_WIND.duplicate() as AudioStreamMP3
+		wind.loop = true
+		_basement_wind_player.stream = wind
+		_basement_wind_player.play()
+	if not _basement_drip_player.playing:
+		var drip := BASEMENT_WATER_DRIP.duplicate() as AudioStreamMP3
+		drip.loop = true
+		_basement_drip_player.stream = drip
+		_basement_drip_player.play()
 
 
 func stop_basement_ambience() -> void:
 	_basement_ambience_active = false
 	_basement_wind_player.stop()
+	_basement_drip_player.stop()
 
 
 func set_muted(muted: bool) -> void:
@@ -203,12 +218,43 @@ func play_electric_zap() -> void:
 	_play_sfx(ELECTRIC_ZAP)
 
 
-func play_basement_monster_intro() -> void:
-	_play_sfx(BASEMENT_DRIPPY_CAVE)
-	var timer := get_tree().create_timer(0.85)
-	timer.timeout.connect(func() -> void:
-		_play_sfx(BASEMENT_CAVE_MONSTER)
-	)
+func play_radio_static() -> void:
+	_play_sfx(RADIO_STATIC)
+
+
+func play_basement_cave_monster() -> void:
+	_play_sfx(BASEMENT_CAVE_MONSTER)
+
+
+func play_suspensful_moment() -> void:
+	_play_sfx(SUSPENSFUL_MOMENT)
+
+
+func try_play_suspensful_moment_for_map() -> bool:
+	if not _player_can_perceive_enemies():
+		return false
+	var scene := get_tree().current_scene
+	if scene == null:
+		return false
+	var scene_id := scene.get_instance_id()
+	if scene_id == _suspensful_moment_scene_id:
+		return false
+	_suspensful_moment_scene_id = scene_id
+	play_suspensful_moment()
+	return true
+
+
+func _player_can_perceive_enemies() -> bool:
+	if get_tree().paused:
+		return false
+	var player := get_tree().get_first_node_in_group("player") as CharacterBody2D
+	if player == null or not is_instance_valid(player):
+		return false
+	if player.is_dead:
+		return false
+	if not player.is_physics_processing():
+		return false
+	return true
 
 
 func set_tractor_ambience_power_on(on: bool) -> void:

@@ -72,6 +72,9 @@ func _ready() -> void:
 	if SaveManager.is_death_respawn():
 		SaveManager.clear_death_respawn()
 		call_deferred("_apply_death_respawn")
+	elif SaveManager.is_objective_replay():
+		hud.hide_menu()
+		call_deferred("_apply_objective_replay_entry")
 	elif entering_from_plant:
 		SaveManager.consume_scene_entry(SCENE_PATH)
 		hud.hide_menu()
@@ -210,7 +213,8 @@ func _activate_emergency_battery() -> void:
 	basement_map.set_emergency_power(true)
 	_set_battery_visual_active(true)
 	AudioManager.play_electric_zap()
-	_trigger_basement_monster_wave(true)
+	AudioManager.play_radio_static()
+	_trigger_basement_monster_wave()
 	hud.show_npc_dialogue(
 		"Radio — Ashford Settlement",
 		RADIO_PART_ONE,
@@ -239,11 +243,9 @@ func _set_battery_visual_active(on: bool) -> void:
 		battery_switch_visual.set_active(on)
 
 
-func _trigger_basement_monster_wave(play_intro: bool = false) -> void:
+func _trigger_basement_monster_wave() -> void:
 	if _waves_spawned or not GameState.is_emergency_battery_active():
 		return
-	if play_intro:
-		AudioManager.play_basement_monster_intro()
 	_spawn_enemy_waves()
 
 
@@ -278,7 +280,16 @@ func _apply_basement_entry() -> void:
 	_phase = GamePhase.PLAYING
 	await get_tree().process_frame
 	_snap_camera_to_player()
-	_trigger_basement_monster_wave(false)
+	_trigger_basement_monster_wave()
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
+
+
+func _apply_objective_replay_entry() -> void:
+	SaveManager.consume_objective_replay()
+	player.global_position = BasementSpawn.basement_entry_spawn(exit_door)
+	player.set_physics_process(true)
+	_phase = GamePhase.PLAYING
+	_snap_camera_to_player()
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
@@ -291,7 +302,7 @@ func _apply_saved_resume() -> void:
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_snap_camera_to_player()
-	_trigger_basement_monster_wave(false)
+	_trigger_basement_monster_wave()
 
 
 func _apply_death_respawn() -> void:
@@ -305,7 +316,7 @@ func _apply_death_respawn() -> void:
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_snap_camera_to_player()
-	_trigger_basement_monster_wave(false)
+	_trigger_basement_monster_wave()
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
@@ -348,7 +359,7 @@ func _setup_map_camera() -> void:
 	var zoom_factor := _compute_camera_zoom(viewport_size)
 	map_camera.configure(zoom_factor, _map_size)
 	map_camera.make_current()
-	_snap_camera_to_player(viewport_size, zoom_factor)
+	_snap_camera_to_player(viewport_size)
 
 
 func _viewport_size() -> Vector2:

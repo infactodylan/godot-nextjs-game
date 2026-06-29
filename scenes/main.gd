@@ -147,7 +147,7 @@ func _setup_map_camera() -> void:
 	)
 	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
 	map_camera.configure(zoom_factor, MAP_SIZE)
-	var half_view := viewport_size / (2.0 * zoom_factor)
+	var half_view := viewport_size / (2.0 * map_camera.zoom)
 	var initial_y := MAP_SIZE.y * 0.5 if half_view.y >= MAP_SIZE.y * 0.5 else player.global_position.y
 	map_camera.position = Vector2(player.global_position.x, initial_y)
 

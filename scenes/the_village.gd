@@ -72,6 +72,8 @@ func _ready() -> void:
 	if SaveManager.is_death_respawn():
 		SaveManager.clear_death_respawn()
 		call_deferred("_apply_death_respawn")
+	elif SaveManager.is_objective_replay():
+		call_deferred("_apply_objective_replay_entry")
 	elif SaveManager.consume_pending_resume(SCENE_PATH):
 		call_deferred("_apply_saved_resume")
 	elif get_tree().has_meta("village_spawn_x") or get_tree().has_meta(RETURN_FROM_PLANT_META):
@@ -131,7 +133,7 @@ func _setup_map_camera() -> void:
 	var zoom_factor := minf(desired_zoom, max_zoom_for_play_area_height)
 	map_camera.configure(zoom_factor, MAP_SIZE)
 	map_camera.make_current()
-	var half_view := viewport_size / (2.0 * zoom_factor)
+	var half_view := viewport_size / (2.0 * map_camera.zoom)
 	var initial_y := MAP_SIZE.y * 0.5 if half_view.y >= MAP_SIZE.y * 0.5 else player.global_position.y
 	map_camera.position = Vector2(player.global_position.x, initial_y)
 
@@ -399,6 +401,24 @@ func _apply_entry_spawn() -> void:
 	tutorial_guide.start_if_needed()
 	_sync_power_plant_door_prompt()
 	call_deferred("_sync_courthouse_guide_arrow")
+	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
+
+
+func _apply_objective_replay_entry() -> void:
+	var objective_id := SaveManager.consume_objective_replay()
+	hud.hide_menu()
+	player.set_physics_process(true)
+	_phase = GamePhase.PLAYING
+	_apply_persisted_plant_power()
+	match objective_id:
+		"mission_briefing":
+			player.global_position = Vector2(4320, GROUND_Y)
+			_snap_camera_to_player()
+			call_deferred("_start_mission_briefing_at_courthouse")
+		_:
+			player.global_position = Vector2(200, GROUND_Y)
+			_snap_camera_to_player()
+			tutorial_guide.start_if_needed()
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 

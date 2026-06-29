@@ -1,7 +1,8 @@
 extends Camera2D
 class_name MapCamera
 
-const OVERVIEW_ZOOM_FACTOR := 0.5
+const PLAY_ZOOM_FROM_CONFIGURED := 0.5
+const OVERVIEW_ZOOM_OUT_EXTRA := 1.5
 const ZOOM_LERP_SPEED := 1.6
 
 var _play_zoom := 1.0
@@ -13,9 +14,9 @@ func _ready() -> void:
 
 
 func configure(play_zoom: float, map_size: Vector2) -> void:
-	_play_zoom = play_zoom
+	_play_zoom = play_zoom * PLAY_ZOOM_FROM_CONFIGURED
 	_map_size = map_size
-	zoom = Vector2(play_zoom, play_zoom)
+	zoom = Vector2(_play_zoom, _play_zoom)
 
 
 func _process(delta: float) -> void:
@@ -29,4 +30,4 @@ func _process(delta: float) -> void:
 
 
 func _overview_zoom() -> float:
-	return _play_zoom * OVERVIEW_ZOOM_FACTOR
+	return _play_zoom / OVERVIEW_ZOOM_OUT_EXTRA

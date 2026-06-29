@@ -21,6 +21,7 @@ AudioManager="*res://autoload/audio_manager.gd"
 EnemyCoordinator="*res://autoload/enemy_coordinator.gd"
 GameState="*res://autoload/game_state.gd"
 SaveManager="*res://autoload/save_manager.gd"
+StoryObjectives="*res://autoload/story_objectives.gd"
 
 [display]
 

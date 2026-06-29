@@ -9,7 +9,7 @@
 [ext_resource type="Script" uid="uid://bprv054pl7me8" path="res://entities/power_plant/basement_map.gd" id="11_basement_map"]
 [ext_resource type="Script" uid="uid://dvytorotpoh7b" path="res://entities/power_plant/basement_platform.gd" id="12_basement_platform"]
 [ext_resource type="Script" uid="uid://lr4603fjnolg" path="res://entities/power_plant/basement_wall.gd" id="13_basement_wall"]
-[ext_resource type="Script" path="res://entities/power_plant/basement_interact_visual.gd" id="14_interact_visual"]
+[ext_resource type="Script" uid="uid://cwu2abadvf3in" path="res://entities/power_plant/basement_interact_visual.gd" id="14_interact_visual"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xk6wq"]
 size = Vector2(548, 32)
@@ -54,7 +54,7 @@ size = Vector2(808, 32)
 size = Vector2(448, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_dw6tr"]
-size = Vector2(468, 32)
+size = Vector2(268, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_v07ed"]
 size = Vector2(788, 32)
@@ -605,13 +605,13 @@ width = 268.0
 level_name = "Level 8"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Map/Platforms/Platform_L8_A" unique_id=434901310]
-position = Vector2(100, 8)
+position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_dw6tr")
 
 [node name="Deck" type="ColorRect" parent="Map/Platforms/Platform_L8_A" unique_id=1067033687]
 offset_left = -134.0
 offset_top = -8.0
-offset_right = 335.0
+offset_right = 134.0
 offset_bottom = 10.0
 color = Color(0.72, 0.66, 0.54, 0.85)
 
@@ -958,7 +958,7 @@ position = Vector2(260, 340)
 position = Vector2(1080, 340)
 
 [node name="Spawn5" type="Marker2D" parent="Map/EnemySpawns" unique_id=1177397589]
-position = Vector2(760, 500)
+position = Vector2(964, 511)
 
 [node name="Spawn6" type="Marker2D" parent="Map/EnemySpawns" unique_id=86458352]
 position = Vector2(300, 660)
@@ -967,7 +967,7 @@ position = Vector2(300, 660)
 position = Vector2(1180, 660)
 
 [node name="Spawn8" type="Marker2D" parent="Map/EnemySpawns" unique_id=1128463839]
-position = Vector2(680, 820)
+position = Vector2(451, 818)
 
 [node name="Spawn9" type="Marker2D" parent="Map/EnemySpawns" unique_id=2054350771]
 position = Vector2(1180, 820)
@@ -979,7 +979,7 @@ position = Vector2(300, 980)
 position = Vector2(1180, 980)
 
 [node name="Spawn12" type="Marker2D" parent="Map/EnemySpawns" unique_id=1525234376]
-position = Vector2(760, 1140)
+position = Vector2(502, 987)
 
 [node name="Decor" type="Node2D" parent="Map" unique_id=277102321]
 
@@ -996,7 +996,7 @@ script = ExtResource("8_interact_zone")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ExitDoor" unique_id=461673243]
 shape = SubResource("RectangleShape2D_exit_door")
 
-[node name="Visual" type="Node2D" parent="ExitDoor"]
+[node name="Visual" type="Node2D" parent="ExitDoor" unique_id=389941950]
 z_index = 2
 script = ExtResource("14_interact_visual")
 
@@ -1007,7 +1007,7 @@ script = ExtResource("8_interact_zone")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="EmergencyBatterySwitch" unique_id=1714064989]
 shape = SubResource("RectangleShape2D_battery")
 
-[node name="Visual" type="Node2D" parent="EmergencyBatterySwitch"]
+[node name="Visual" type="Node2D" parent="EmergencyBatterySwitch" unique_id=1452670801]
 z_index = 2
 script = ExtResource("14_interact_visual")
 kind = 1

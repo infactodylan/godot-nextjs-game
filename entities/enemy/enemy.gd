@@ -45,6 +45,7 @@ var _jump_active := false
 var _jump_was_airborne := false
 var _reverse_timer := 0.0
 var _forced_direction := 0.0
+var _checked_first_sight := false
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -119,6 +120,7 @@ func _finish_emerge() -> void:
 	collision_shape.disabled = false
 	set_process(false)
 	set_physics_process(true)
+	_try_notify_first_sight()
 
 
 func _physics_process(delta: float) -> void:
@@ -128,6 +130,9 @@ func _physics_process(delta: float) -> void:
 
 	if _is_dying:
 		return
+
+	if not _checked_first_sight and is_active():
+		_try_notify_first_sight()
 
 	if _attack_cooldown > 0.0:
 		_attack_cooldown = maxf(_attack_cooldown - delta, 0.0)
@@ -545,3 +550,20 @@ func _apply_stance() -> void:
 	rect_shape.size = Vector2(HALF_WIDTH * 2.0, STAND_HEIGHT)
 	collision_shape.position = Vector2(0.0, -half_height)
 	animated_sprite.position.y = -(SPRITE_FOOT_Y - SPRITE_TEXTURE_SIZE * 0.5) * SPRITE_SCALE
+
+
+func _try_notify_first_sight() -> void:
+	if _checked_first_sight or not is_active():
+		return
+	if not _is_visible_to_player():
+		return
+	if AudioManager.try_play_suspensful_moment_for_map():
+		_checked_first_sight = true
+
+
+func _is_visible_to_player() -> bool:
+	var camera := get_viewport().get_camera_2d()
+	if camera == null:
+		return false
+	var screen_pos := camera.get_canvas_transform() * global_position
+	return get_viewport().get_visible_rect().has_point(screen_pos)
