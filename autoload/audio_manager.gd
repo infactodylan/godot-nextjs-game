@@ -8,7 +8,12 @@ const BOSS_GUNSHOT := preload("res://assets/audio/boss_gunshot.mp3")
 const PLAYER_RELOAD := preload("res://assets/audio/player_reload.mp3")
 const POWER_DOWN := preload("res://assets/audio/power_down.mp3")
 const ELECTRIC_ZAP := preload("res://assets/audio/electric_zap.mp3")
+const BASEMENT_DRIPPY_CAVE := preload("res://assets/audio/basement_drippy_cave.mp3")
+const BASEMENT_CAVE_MONSTER := preload("res://assets/audio/basement_cave_monster.mp3")
+const BASEMENT_CAVE_WIND := preload("res://assets/audio/basement_cave_wind.mp3")
 const TRACTOR_AMBIENCE := preload("res://assets/audio/tractor_ambience.mp3")
+
+const BASEMENT_WIND_DB := -12.0
 
 const TRACTOR_FADE_SECONDS := 2.0
 const TRACTOR_SILENT_DB := -80.0
@@ -35,6 +40,8 @@ var _muted := false
 var _tractor_player: AudioStreamPlayer
 var _tractor_current_db := TRACTOR_SILENT_DB
 var _tractor_player_near := false
+var _basement_wind_player: AudioStreamPlayer
+var _basement_ambience_active := false
 
 
 func _ready() -> void:
@@ -64,15 +71,26 @@ func _ready() -> void:
 	_tractor_player.name = "TractorAmbience"
 	_tractor_player.volume_db = TRACTOR_SILENT_DB
 	add_child(_tractor_player)
+
+	_basement_wind_player = AudioStreamPlayer.new()
+	_basement_wind_player.name = "BasementCaveWind"
+	_basement_wind_player.volume_db = BASEMENT_WIND_DB
+	add_child(_basement_wind_player)
 	set_process(true)
 
 
 func _get_tractor_target_db() -> float:
-	if not GameState.is_plant_power_on():
+	if _basement_ambience_active:
+		return TRACTOR_SILENT_DB
+	if not _is_plant_ambience_enabled():
 		return TRACTOR_SILENT_DB
 	if _tractor_player_near:
 		return TRACTOR_NEAR_DB
 	return TRACTOR_QUIET_DB
+
+
+func _is_plant_ambience_enabled() -> bool:
+	return GameState.is_plant_power_on() or GameState.is_emergency_battery_active()
 
 
 func _process(delta: float) -> void:
@@ -126,6 +144,23 @@ func stop_village_ambience() -> void:
 	_village_evening_player.stop()
 
 
+func play_basement_ambience() -> void:
+	stop_village_ambience()
+	_basement_ambience_active = true
+	_tractor_player_near = false
+	if _basement_wind_player.playing:
+		return
+	var stream := BASEMENT_CAVE_WIND.duplicate() as AudioStreamMP3
+	stream.loop = true
+	_basement_wind_player.stream = stream
+	_basement_wind_player.play()
+
+
+func stop_basement_ambience() -> void:
+	_basement_ambience_active = false
+	_basement_wind_player.stop()
+
+
 func set_muted(muted: bool) -> void:
 	_muted = muted
 	AudioServer.set_bus_mute(0, muted)
@@ -166,6 +201,14 @@ func play_power_down() -> void:
 
 func play_electric_zap() -> void:
 	_play_sfx(ELECTRIC_ZAP)
+
+
+func play_basement_monster_intro() -> void:
+	_play_sfx(BASEMENT_DRIPPY_CAVE)
+	var timer := get_tree().create_timer(0.85)
+	timer.timeout.connect(func() -> void:
+		_play_sfx(BASEMENT_CAVE_MONSTER)
+	)
 
 
 func set_tractor_ambience_power_on(on: bool) -> void:

@@ -3,13 +3,10 @@ extends Node2D
 enum GamePhase { MENU, PLAYING }
 
 const SCREEN_SIZE_RATIO := 0.75
-const MAP_SIZE := Vector2(3200.0, 2000.0)
 const CAMERA_ZOOM_MULTIPLIER := 10.0
 const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 5.5
-const HORIZONTAL_FLOOR_Y := 1680.0
-const HORIZONTAL_SECTION_Y := 1500.0
+const HORIZONTAL_SECTION_Y := 820.0
 const MAP_BOUND_MARGIN := 32.0
-const MAP_FALL_DEATH_Y := MAP_SIZE.y + MAP_BOUND_MARGIN
 const POWER_PLANT_SCENE := "res://scenes/power_plant.tscn"
 const RETURN_FROM_BASEMENT_META := "return_from_basement"
 const BASEMENT_ENTRY_META := "basement_entry"
@@ -33,8 +30,11 @@ const RADIO_PART_TWO := (
 @onready var hud: CanvasLayer = $HUD
 @onready var exit_door: Area2D = $ExitDoor
 @onready var battery_switch: Area2D = $EmergencyBatterySwitch
-@onready var basement_visual: Node2D = $BasementVisual
+@onready var battery_switch_visual: BasementInteractVisual = $EmergencyBatterySwitch/Visual
+@onready var basement_map: BasementMap = $Map
 @onready var enemies: Node2D = $Enemies
+
+var _map_size := BasementMap.DEFAULT_MAP_SIZE
 
 var _enemy_scene: PackedScene = preload("res://entities/enemy/enemy.tscn")
 var _phase := GamePhase.MENU
@@ -46,11 +46,13 @@ var _waves_spawned := false
 
 
 func _ready() -> void:
+	_map_size = basement_map.map_size
 	_setup_window_size()
 	_setup_map_camera()
 	player.set_physics_process(false)
-	if basement_visual.has_method("set_emergency_power"):
-		basement_visual.call("set_emergency_power", GameState.is_emergency_battery_active())
+	basement_map.set_emergency_power(GameState.is_emergency_battery_active())
+	_set_battery_visual_active(GameState.is_emergency_battery_active())
+	AudioManager.play_basement_ambience()
 
 	hud.bind_player(player)
 	hud.bind_camera(map_camera)
@@ -124,9 +126,9 @@ func _is_at_battery_switch() -> bool:
 func _is_player_outside_map() -> bool:
 	var pos := player.global_position
 	return (
-		pos.y > MAP_FALL_DEATH_Y
+		pos.y > _map_size.y + MAP_BOUND_MARGIN
 		or pos.x < -MAP_BOUND_MARGIN
-		or pos.x > MAP_SIZE.x + MAP_BOUND_MARGIN
+		or pos.x > _map_size.x + MAP_BOUND_MARGIN
 	)
 
 
@@ -205,9 +207,10 @@ func _activate_emergency_battery() -> void:
 	player.set_physics_process(false)
 	player.velocity = Vector2.ZERO
 	GameState.set_emergency_battery_active(true)
-	if basement_visual.has_method("set_emergency_power"):
-		basement_visual.call("set_emergency_power", true)
+	basement_map.set_emergency_power(true)
+	_set_battery_visual_active(true)
 	AudioManager.play_electric_zap()
+	_trigger_basement_monster_wave(true)
 	hud.show_npc_dialogue(
 		"Radio — Ashford Settlement",
 		RADIO_PART_ONE,
@@ -231,34 +234,24 @@ func _on_radio_broadcast_finished() -> void:
 	_sync_battery_switch_prompt()
 
 
+func _set_battery_visual_active(on: bool) -> void:
+	if battery_switch_visual != null:
+		battery_switch_visual.set_active(on)
+
+
+func _trigger_basement_monster_wave(play_intro: bool = false) -> void:
+	if _waves_spawned or not GameState.is_emergency_battery_active():
+		return
+	if play_intro:
+		AudioManager.play_basement_monster_intro()
+	_spawn_enemy_waves()
+
+
 func _spawn_enemy_waves() -> void:
 	if _waves_spawned:
 		return
 	_waves_spawned = true
-	var tunnel_spawns: Array[Vector2] = [
-		Vector2(720.0, 200.0),
-		Vector2(360.0, 200.0),
-		Vector2(700.0, 420.0),
-		Vector2(700.0, 620.0),
-		Vector2(1100.0, 620.0),
-		Vector2(680.0, 820.0),
-		Vector2(1100.0, 820.0),
-		Vector2(850.0, 1020.0),
-		Vector2(220.0, 1220.0),
-		Vector2(1180.0, 1220.0),
-		Vector2(380.0, 1420.0),
-		Vector2(1020.0, 1420.0),
-	]
-	var base_spawns: Array[Vector2] = [
-		Vector2(220.0, 1640.0),
-		Vector2(1150.0, 1640.0),
-		Vector2(1720.0, 1640.0),
-		Vector2(2300.0, 1640.0),
-		Vector2(2800.0, 1640.0),
-	]
-	for pos in tunnel_spawns:
-		_spawn_single_enemy(pos)
-	for pos in base_spawns:
+	for pos in basement_map.get_enemy_spawn_positions():
 		_spawn_single_enemy(pos)
 
 
@@ -285,7 +278,7 @@ func _apply_basement_entry() -> void:
 	_phase = GamePhase.PLAYING
 	await get_tree().process_frame
 	_snap_camera_to_player()
-	_spawn_enemy_waves()
+	_trigger_basement_monster_wave(false)
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
@@ -298,8 +291,7 @@ func _apply_saved_resume() -> void:
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_snap_camera_to_player()
-	if not _waves_spawned:
-		_spawn_enemy_waves()
+	_trigger_basement_monster_wave(false)
 
 
 func _apply_death_respawn() -> void:
@@ -313,7 +305,7 @@ func _apply_death_respawn() -> void:
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_snap_camera_to_player()
-	_spawn_enemy_waves()
+	_trigger_basement_monster_wave(false)
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
@@ -327,6 +319,7 @@ func _clear_enemies() -> void:
 func _exit_to_plant() -> void:
 	hud.hide_interact_prompt()
 	hud.hide_objective_indicator()
+	AudioManager.stop_basement_ambience()
 	get_tree().set_meta(RETURN_FROM_BASEMENT_META, true)
 	get_tree().call_deferred("change_scene_to_file", POWER_PLANT_SCENE)
 
@@ -338,7 +331,7 @@ func _setup_window_size() -> void:
 	var screen_size := DisplayServer.screen_get_size(screen_index)
 	var target_width := int(screen_size.x * SCREEN_SIZE_RATIO)
 	var target_height := int(screen_size.y * SCREEN_SIZE_RATIO)
-	var map_aspect := MAP_SIZE.x / MAP_SIZE.y
+	var map_aspect := _map_size.x / _map_size.y
 	var window_aspect := float(target_width) / float(target_height)
 	if window_aspect < map_aspect:
 		target_height = int(float(target_width) / map_aspect)
@@ -353,7 +346,7 @@ func _setup_map_camera() -> void:
 	await get_tree().process_frame
 	var viewport_size := _viewport_size()
 	var zoom_factor := _compute_camera_zoom(viewport_size)
-	map_camera.configure(zoom_factor, MAP_SIZE)
+	map_camera.configure(zoom_factor, _map_size)
 	map_camera.make_current()
 	_snap_camera_to_player(viewport_size, zoom_factor)
 
@@ -365,10 +358,10 @@ func _viewport_size() -> Vector2:
 func _compute_camera_zoom(viewport_size: Vector2) -> float:
 	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
 		return 0.35
-	var base_zoom := minf(viewport_size.x / MAP_SIZE.x, viewport_size.y / MAP_SIZE.y)
+	var base_zoom := minf(viewport_size.x / _map_size.x, viewport_size.y / _map_size.y)
 	var desired_zoom := base_zoom * CAMERA_ZOOM_MULTIPLIER
 	var max_zoom_for_play_area_height := (
-		viewport_size.y * MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO / MAP_SIZE.y
+		viewport_size.y * MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO / _map_size.y
 	)
 	return maxf(minf(desired_zoom, max_zoom_for_play_area_height), 0.08)
 
@@ -380,10 +373,10 @@ func _update_camera_follow() -> void:
 	var zoom_factor := map_camera.zoom.x
 	if zoom_factor <= 0.0:
 		zoom_factor = _compute_camera_zoom(viewport_size)
-		map_camera.configure(zoom_factor, MAP_SIZE)
+		map_camera.configure(zoom_factor, _map_size)
 	var half_view := viewport_size / (2.0 * zoom_factor)
-	var target_x := clampf(player.global_position.x, half_view.x, MAP_SIZE.x - half_view.x)
-	var target_y := clampf(player.global_position.y, half_view.y, MAP_SIZE.y - half_view.y)
+	var target_x := clampf(player.global_position.x, half_view.x, _map_size.x - half_view.x)
+	var target_y := clampf(player.global_position.y, half_view.y, _map_size.y - half_view.y)
 	map_camera.position = Vector2(target_x, target_y)
 
 
@@ -399,10 +392,10 @@ func _snap_camera_to_player(
 		zoom_factor = map_camera.zoom.x
 	if zoom_factor <= 0.0:
 		zoom_factor = _compute_camera_zoom(viewport_size)
-		map_camera.configure(zoom_factor, MAP_SIZE)
+		map_camera.configure(zoom_factor, _map_size)
 	var half_view := viewport_size / (2.0 * zoom_factor)
-	var target_x := clampf(player.global_position.x, half_view.x, MAP_SIZE.x - half_view.x)
-	var target_y := clampf(player.global_position.y, half_view.y, MAP_SIZE.y - half_view.y)
+	var target_x := clampf(player.global_position.x, half_view.x, _map_size.x - half_view.x)
+	var target_y := clampf(player.global_position.y, half_view.y, _map_size.y - half_view.y)
 	map_camera.position = Vector2(target_x, target_y)
 	map_camera.make_current()
 
@@ -438,10 +431,10 @@ func _start_level_from_beginning() -> void:
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
 	_snap_camera_to_player()
-	_spawn_enemy_waves()
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
 func _on_restart_pressed() -> void:
+	AudioManager.stop_basement_ambience()
 	get_tree().paused = false
 	get_tree().reload_current_scene()
