@@ -4,13 +4,18 @@ class_name BasementSpawn
 const GROUND_Y := 820.0
 # Level 1 floor line — matches catwalk / village GROUND_Y convention.
 const BASEMENT_TOP_ENTRY_Y := 180.0
-const BASEMENT_TOP_ENTRY_X := 280.0
 const PLAYER_HALF_WIDTH := 18.0
 const DOOR_CLEARANCE := 8.0
 
 
 static func top_entry_spawn() -> Vector2:
-	return Vector2(BASEMENT_TOP_ENTRY_X, BASEMENT_TOP_ENTRY_Y)
+	# ExitDoor at (160, 140) with a 120px-wide collider — keep in sync with basement_entry_spawn().
+	const EXIT_DOOR_X := 160.0
+	const EXIT_DOOR_HALF_WIDTH := 60.0
+	return Vector2(
+		EXIT_DOOR_X + EXIT_DOOR_HALF_WIDTH + PLAYER_HALF_WIDTH + DOOR_CLEARANCE,
+		BASEMENT_TOP_ENTRY_Y
+	)
 
 
 static func plant_basement_door_spawn(door: Area2D) -> Vector2:

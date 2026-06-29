@@ -13,6 +13,9 @@ const WASTELANDS_SCENE := "res://scenes/waste_lands.tscn"
 const POWER_PLANT_SCENE := "res://scenes/power_plant.tscn"
 const SCENE_PATH := "res://scenes/the_village.tscn"
 const RETURN_FROM_PLANT_META := "return_from_plant"
+const VILLAGE_ENTRY_FROM_WASTELAND_META := "village_entry_from_wasteland"
+const WASTELAND_ENTRY_FROM_VILLAGE_META := "wasteland_entry_from_village"
+const VILLAGE_FIRST_PLAY_SPAWN_X := 200.0
 const GROUND_Y := PlantDoorSpawn.GROUND_Y
 const MISSION_BRIEFING_STUB := (
 	"We made it in time. Half the village heard Ashford on the relay — everyone is "
@@ -76,7 +79,10 @@ func _ready() -> void:
 		call_deferred("_apply_objective_replay_entry")
 	elif SaveManager.consume_pending_resume(SCENE_PATH):
 		call_deferred("_apply_saved_resume")
-	elif get_tree().has_meta("village_spawn_x") or get_tree().has_meta(RETURN_FROM_PLANT_META):
+	elif (
+		get_tree().has_meta(VILLAGE_ENTRY_FROM_WASTELAND_META)
+		or get_tree().has_meta(RETURN_FROM_PLANT_META)
+	):
 		call_deferred("_apply_entry_spawn")
 	else:
 		hud.show_start_screen("The Village")
@@ -379,21 +385,21 @@ func _on_wasteland_gate_entered() -> void:
 func _go_to_wastelands() -> void:
 	AudioManager.stop_village_ambience()
 	AudioManager.reset_tractor_ambience()
-	get_tree().set_meta("wasteland_spawn_x", 250.0)
+	get_tree().set_meta(WASTELAND_ENTRY_FROM_VILLAGE_META, true)
 	get_tree().change_scene_to_file(WASTELANDS_SCENE)
 
 
 func _apply_entry_spawn() -> void:
-	var spawn_x: float
+	var spawn: Vector2
 	if get_tree().has_meta(RETURN_FROM_PLANT_META):
 		get_tree().remove_meta(RETURN_FROM_PLANT_META)
-		spawn_x = PlantDoorSpawn.exterior_spawn(power_plant_door).x
-	elif get_tree().has_meta("village_spawn_x"):
-		spawn_x = get_tree().get_meta("village_spawn_x")
-		get_tree().remove_meta("village_spawn_x")
+		spawn = PlantDoorSpawn.exterior_spawn(power_plant_door)
+	elif get_tree().has_meta(VILLAGE_ENTRY_FROM_WASTELAND_META):
+		get_tree().remove_meta(VILLAGE_ENTRY_FROM_WASTELAND_META)
+		spawn = GateSpawn.village_entry_from_wasteland(wasteland_gate)
 	else:
 		return
-	player.global_position = Vector2(spawn_x, GROUND_Y)
+	player.global_position = spawn
 	hud.hide_menu()
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
@@ -530,8 +536,10 @@ func _on_play_pressed() -> void:
 func _start_level_from_beginning() -> void:
 	hud.hide_menu()
 	get_tree().paused = false
+	player.global_position = Vector2(VILLAGE_FIRST_PLAY_SPAWN_X, GROUND_Y)
 	player.set_physics_process(true)
 	_phase = GamePhase.PLAYING
+	_snap_camera_to_player()
 	tutorial_guide.start_if_needed()
 	_sync_power_plant_door_prompt()
 	call_deferred("_sync_courthouse_guide_arrow")

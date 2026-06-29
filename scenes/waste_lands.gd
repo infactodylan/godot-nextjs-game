@@ -25,7 +25,8 @@ const PLATFORM_TOP_OFFSET := PLATFORM_SURFACE_OFFSET
 const CAMERA_ZOOM_MULTIPLIER := 10.0
 const MAX_PLAY_AREA_VIEWPORT_HEIGHT_RATIO := 2.25
 const VILLAGE_SCENE := "res://scenes/the_village.tscn"
-const VILLAGE_RETURN_SPAWN_X := 7380.0
+const WASTELAND_ENTRY_FROM_VILLAGE_META := "wasteland_entry_from_village"
+const VILLAGE_ENTRY_FROM_WASTELAND_META := "village_entry_from_wasteland"
 const SCENE_PATH := "res://scenes/waste_lands.tscn"
 
 @onready var player: CharacterBody2D = $Player
@@ -90,24 +91,25 @@ func _ready() -> void:
 		call_deferred("_apply_death_respawn")
 	elif SaveManager.consume_pending_resume(SCENE_PATH):
 		call_deferred("_apply_saved_resume")
-	elif get_tree().has_meta("wasteland_spawn_x"):
+	elif get_tree().has_meta(WASTELAND_ENTRY_FROM_VILLAGE_META):
 		call_deferred("_apply_entry_spawn")
 	else:
 		hud.show_start_screen("Waste Lands")
 
 
 func _apply_entry_spawn() -> void:
-	if not get_tree().has_meta("wasteland_spawn_x"):
+	if not get_tree().has_meta(WASTELAND_ENTRY_FROM_VILLAGE_META):
 		return
-	player.global_position.x = get_tree().get_meta("wasteland_spawn_x")
+	get_tree().remove_meta(WASTELAND_ENTRY_FROM_VILLAGE_META)
+	player.global_position = GateSpawn.wasteland_entry_from_village(village_gate)
 	player.global_position.y = ENEMY_SPAWN_GROUND_Y
-	get_tree().remove_meta("wasteland_spawn_x")
 	hud.hide_menu()
 	player.set_physics_process(true)
 	_phase = GamePhase.PRE_START
 	_phase_timer = ENEMY_SPAWN_DELAY
 	hud.start_countdown("Enemies spawn in")
 	hud.update_countdown(_phase_timer)
+	_snap_camera_to_player()
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
@@ -220,6 +222,21 @@ func _update_camera_follow() -> void:
 	else:
 		target_y = clampf(player.global_position.y, half_view.y, MAP_SIZE.y - half_view.y)
 	map_camera.position = Vector2(target_x, target_y)
+
+
+func _snap_camera_to_player() -> void:
+	if not player.should_camera_follow():
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	var half_view := viewport_size / (2.0 * map_camera.zoom)
+	var target_x := clampf(player.global_position.x, half_view.x, MAP_SIZE.x - half_view.x)
+	var target_y: float
+	if half_view.y >= MAP_SIZE.y * 0.5:
+		target_y = MAP_SIZE.y * 0.5
+	else:
+		target_y = clampf(player.global_position.y, half_view.y, MAP_SIZE.y - half_view.y)
+	map_camera.position = Vector2(target_x, target_y)
+	map_camera.make_current()
 
 
 func _spawn_wave(wave_node: Node2D, enemy_count: int, wave_number: int) -> void:
@@ -550,11 +567,14 @@ func _on_get_ready_finished() -> void:
 func _start_level_from_beginning() -> void:
 	hud.hide_menu()
 	get_tree().paused = false
+	player.global_position = GateSpawn.wasteland_entry_from_village(village_gate)
+	player.global_position.y = ENEMY_SPAWN_GROUND_Y
 	player.set_physics_process(true)
 	_phase = GamePhase.PRE_START
 	_phase_timer = ENEMY_SPAWN_DELAY
 	hud.start_countdown("Enemies spawn in")
 	hud.update_countdown(_phase_timer)
+	_snap_camera_to_player()
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
@@ -580,7 +600,7 @@ func _on_village_gate_entered() -> void:
 
 func _go_to_village() -> void:
 	AudioManager.stop_music()
-	get_tree().set_meta("village_spawn_x", VILLAGE_RETURN_SPAWN_X)
+	get_tree().set_meta(VILLAGE_ENTRY_FROM_WASTELAND_META, true)
 	get_tree().change_scene_to_file(VILLAGE_SCENE)
 
 
