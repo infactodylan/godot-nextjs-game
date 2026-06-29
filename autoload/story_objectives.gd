@@ -81,13 +81,21 @@ func has_any_completed() -> bool:
 func begin_replay(objective_id: String, tree: SceneTree) -> void:
 	var index := _index_of(objective_id)
 	if index < 0:
+		push_warning("StoryObjectives: unknown objective '%s'" % objective_id)
 		return
+	tree.paused = false
 	GameState.reset_from_objective_index(index)
 	_pending_replay_id = objective_id
 	var scene_path: String = ENTRIES[index].scene
 	SaveManager.prepare_objective_replay(scene_path)
 	tree.set_meta(OBJECTIVE_REPLAY_META, objective_id)
-	tree.call_deferred("change_scene_to_file", scene_path)
+	var current_path := ""
+	if tree.current_scene:
+		current_path = tree.current_scene.scene_file_path
+	if current_path == scene_path:
+		tree.reload_current_scene()
+	else:
+		tree.change_scene_to_file(scene_path)
 
 
 func has_pending_replay() -> bool:

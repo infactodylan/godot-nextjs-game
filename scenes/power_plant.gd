@@ -364,8 +364,8 @@ func _on_battery_offer_acknowledged() -> void:
 	GameState.mark_battery_dialogue_complete()
 	if interior_visual.has_method("set_basement_unlocked"):
 		interior_visual.call("set_basement_unlocked", true)
-	hud.hide_objective_indicator()
-	_enter_basement()
+	player.set_physics_process(true)
+	_sync_basement_guide_arrow()
 
 
 func _show_mara_broadcast_reaction() -> void:

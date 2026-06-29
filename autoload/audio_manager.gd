@@ -17,6 +17,7 @@ const TRACTOR_AMBIENCE := preload("res://assets/audio/tractor_ambience.mp3")
 
 const BASEMENT_WIND_DB := -12.0
 const BASEMENT_DRIP_DB := -18.0
+const RADIO_STATIC_DB := -10.0
 
 const TRACTOR_FADE_SECONDS := 2.0
 const TRACTOR_SILENT_DB := -80.0
@@ -45,6 +46,7 @@ var _tractor_current_db := TRACTOR_SILENT_DB
 var _tractor_player_near := false
 var _basement_wind_player: AudioStreamPlayer
 var _basement_drip_player: AudioStreamPlayer
+var _radio_static_player: AudioStreamPlayer
 var _basement_ambience_active := false
 var _suspensful_moment_scene_id := -1
 
@@ -86,6 +88,11 @@ func _ready() -> void:
 	_basement_drip_player.name = "BasementWaterDrip"
 	_basement_drip_player.volume_db = BASEMENT_DRIP_DB
 	add_child(_basement_drip_player)
+
+	_radio_static_player = AudioStreamPlayer.new()
+	_radio_static_player.name = "RadioBroadcastStatic"
+	_radio_static_player.volume_db = RADIO_STATIC_DB
+	add_child(_radio_static_player)
 	set_process(true)
 
 
@@ -174,6 +181,24 @@ func stop_basement_ambience() -> void:
 	_basement_ambience_active = false
 	_basement_wind_player.stop()
 	_basement_drip_player.stop()
+	stop_radio_broadcast()
+
+
+func start_radio_broadcast() -> void:
+	if _radio_static_player.playing:
+		return
+	var stream := RADIO_STATIC.duplicate() as AudioStreamMP3
+	stream.loop = true
+	_radio_static_player.stream = stream
+	_radio_static_player.play()
+
+
+func stop_radio_broadcast() -> void:
+	_radio_static_player.stop()
+
+
+func play_radio_static() -> void:
+	start_radio_broadcast()
 
 
 func set_muted(muted: bool) -> void:
@@ -216,10 +241,6 @@ func play_power_down() -> void:
 
 func play_electric_zap() -> void:
 	_play_sfx(ELECTRIC_ZAP)
-
-
-func play_radio_static() -> void:
-	_play_sfx(RADIO_STATIC)
 
 
 func play_basement_cave_monster() -> void:

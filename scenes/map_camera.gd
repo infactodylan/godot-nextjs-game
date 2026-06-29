@@ -20,7 +20,7 @@ func configure(play_zoom: float, map_size: Vector2) -> void:
 
 
 func _process(delta: float) -> void:
-	if get_tree().paused or not is_current():
+	if get_tree().paused or not is_current() or _is_pause_menu_open():
 		return
 	var target := _overview_zoom() if Input.is_action_pressed("map_overview") else _play_zoom
 	var next := move_toward(zoom.x, target, ZOOM_LERP_SPEED * delta)
@@ -31,3 +31,10 @@ func _process(delta: float) -> void:
 
 func _overview_zoom() -> float:
 	return _play_zoom / OVERVIEW_ZOOM_OUT_EXTRA
+
+
+func _is_pause_menu_open() -> bool:
+	for node in get_tree().get_nodes_in_group("hud"):
+		if node.has_method("is_pause_menu_open"):
+			return node.call("is_pause_menu_open")
+	return false

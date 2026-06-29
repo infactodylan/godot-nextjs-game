@@ -213,7 +213,7 @@ func _activate_emergency_battery() -> void:
 	basement_map.set_emergency_power(true)
 	_set_battery_visual_active(true)
 	AudioManager.play_electric_zap()
-	AudioManager.play_radio_static()
+	AudioManager.start_radio_broadcast()
 	_trigger_basement_monster_wave()
 	hud.show_npc_dialogue(
 		"Radio — Ashford Settlement",
@@ -234,8 +234,17 @@ func _show_radio_part_two() -> void:
 
 func _on_radio_broadcast_finished() -> void:
 	GameState.mark_radio_broadcast_received()
+	AudioManager.stop_radio_broadcast()
 	player.set_physics_process(true)
+	_sync_basement_combat_music()
 	_sync_battery_switch_prompt()
+
+
+func _sync_basement_combat_music() -> void:
+	if _waves_spawned and GameState.is_radio_broadcast_received():
+		AudioManager.play_music()
+	else:
+		AudioManager.stop_music()
 
 
 func _set_battery_visual_active(on: bool) -> void:
@@ -281,6 +290,7 @@ func _apply_basement_entry() -> void:
 	await get_tree().process_frame
 	_snap_camera_to_player()
 	_trigger_basement_monster_wave()
+	_sync_basement_combat_music()
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
@@ -303,6 +313,7 @@ func _apply_saved_resume() -> void:
 	_phase = GamePhase.PLAYING
 	_snap_camera_to_player()
 	_trigger_basement_monster_wave()
+	_sync_basement_combat_music()
 
 
 func _apply_death_respawn() -> void:
@@ -317,6 +328,7 @@ func _apply_death_respawn() -> void:
 	_phase = GamePhase.PLAYING
 	_snap_camera_to_player()
 	_trigger_basement_monster_wave()
+	_sync_basement_combat_music()
 	SaveManager.register_room_entry(SCENE_PATH, player.global_position)
 
 
@@ -330,6 +342,8 @@ func _clear_enemies() -> void:
 func _exit_to_plant() -> void:
 	hud.hide_interact_prompt()
 	hud.hide_objective_indicator()
+	AudioManager.stop_radio_broadcast()
+	AudioManager.stop_music()
 	AudioManager.stop_basement_ambience()
 	get_tree().set_meta(RETURN_FROM_BASEMENT_META, true)
 	get_tree().call_deferred("change_scene_to_file", POWER_PLANT_SCENE)
@@ -428,6 +442,7 @@ func _on_battery_switch_exited() -> void:
 
 
 func _on_player_died() -> void:
+	AudioManager.stop_radio_broadcast()
 	get_tree().paused = false
 	SaveManager.handle_player_death()
 
@@ -446,6 +461,8 @@ func _start_level_from_beginning() -> void:
 
 
 func _on_restart_pressed() -> void:
+	AudioManager.stop_radio_broadcast()
+	AudioManager.stop_music()
 	AudioManager.stop_basement_ambience()
 	get_tree().paused = false
 	get_tree().reload_current_scene()

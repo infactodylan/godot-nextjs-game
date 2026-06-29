@@ -17,6 +17,8 @@ const BOOST_CALLOUT_TEXT := "Super weapon boost — grab it now!"
 const INTERACT_PROMPT_COLOR := Color(1.0, 0.95, 0.72, 1.0)
 const OBJECTIVE_COLOR := Color(1.0, 0.85, 0.32, 1.0)
 const DIALOGUE_MAX_SCREEN_WIDTH_RATIO := 0.7
+const PAUSE_OVERLAY_ACTIVE_Z_INDEX := 295
+const PAUSE_UI_LAYER := 400
 
 @onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
 @onready var ammo_label: Label = $MarginContainer/VBoxContainer/AmmoLabel
@@ -79,13 +81,16 @@ var _objective_label := ""
 var _pause_objectives_panel: VBoxContainer
 var _pause_objectives_list: VBoxContainer
 var _pause_objectives_hint: Label
-var _pause_replay_button: Button
 var _pause_objective_checkboxes: Dictionary = {}
+var _pause_objective_labels: Dictionary = {}
+var _pause_ui_layer: CanvasLayer
+var _pause_ui_root: Control
 var _replay_objective_id := ""
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group("hud")
 	$CountdownCenter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$MarginContainer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boss_label.visible = false
@@ -105,6 +110,7 @@ func _ready() -> void:
 	mute_button.pressed.connect(_on_mute_pressed)
 	menu_button.pressed.connect(_on_menu_button_pressed)
 	_disable_button_keyboard_focus()
+	$TopRightControls.process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_pickup_callout()
 	_setup_interact_prompt()
 	_setup_tutorial_panel()
@@ -113,7 +119,12 @@ func _ready() -> void:
 	_configure_dialogue_label(menu_message)
 	get_viewport().size_changed.connect(_update_dialogue_width_limits)
 	_update_dialogue_width_limits()
-	show_start_screen()
+	if not SaveManager.is_objective_replay():
+		show_start_screen()
+
+
+func is_pause_menu_open() -> bool:
+	return _pause_ui_root != null and _pause_ui_root.visible
 
 
 func configure_resume_countdown(
@@ -133,7 +144,7 @@ func start_get_ready_countdown(on_finished: Callable) -> void:
 	_get_ready_active = true
 	_get_ready_left = RESUME_COUNTDOWN
 	get_tree().paused = true
-	pause_overlay.visible = false
+	_hide_pause_ui()
 	menu_overlay.visible = false
 	pause_button.text = "Pause"
 	start_countdown("Get ready")
@@ -478,9 +489,12 @@ func _toggle_pause() -> void:
 		else:
 			_apply_unpause()
 	else:
-		get_tree().paused = true
 		_refresh_pause_objectives_panel()
+		get_tree().paused = true
+		pause_overlay.z_index = PAUSE_OVERLAY_ACTIVE_Z_INDEX
 		pause_overlay.visible = true
+		if _pause_ui_root:
+			_pause_ui_root.visible = true
 		pause_button.text = "Resume"
 		get_viewport().gui_release_focus()
 
@@ -488,7 +502,7 @@ func _toggle_pause() -> void:
 func _apply_unpause() -> void:
 	_clear_replay_objective_selection()
 	get_tree().paused = false
-	pause_overlay.visible = false
+	_hide_pause_ui()
 	pause_button.text = "Pause"
 	get_viewport().gui_release_focus()
 
@@ -670,17 +684,40 @@ func _setup_shake_off_hint() -> void:
 
 func _setup_pause_objectives_panel() -> void:
 	pause_label.visible = false
+	pause_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 
-	var center := CenterContainer.new()
+	_pause_ui_layer = CanvasLayer.new()
+	_pause_ui_layer.name = "PauseUILayer"
+	_pause_ui_layer.layer = PAUSE_UI_LAYER
+	_pause_ui_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_pause_ui_layer)
+
+	_pause_ui_root = Control.new()
+	_pause_ui_root.name = "PauseUIRoot"
+	_pause_ui_root.process_mode = Node.PROCESS_MODE_ALWAYS
+	_pause_ui_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pause_ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pause_ui_root.visible = false
+	_pause_ui_layer.add_child(_pause_ui_root)
+
+	var center := MarginContainer.new()
 	center.name = "PauseCenter"
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.process_mode = Node.PROCESS_MODE_ALWAYS
 	center.mouse_filter = Control.MOUSE_FILTER_STOP
-	pause_overlay.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.add_theme_constant_override("margin_left", 24)
+	center.add_theme_constant_override("margin_right", 24)
+	center.add_theme_constant_override("margin_top", 24)
+	center.add_theme_constant_override("margin_bottom", 24)
+	_pause_ui_root.add_child(center)
 
 	_pause_objectives_panel = VBoxContainer.new()
 	_pause_objectives_panel.name = "PauseVBox"
+	_pause_objectives_panel.process_mode = Node.PROCESS_MODE_ALWAYS
 	_pause_objectives_panel.add_theme_constant_override("separation", 14)
-	_pause_objectives_panel.custom_minimum_size = Vector2(640, 0)
+	_pause_objectives_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_pause_objectives_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.add_child(_pause_objectives_panel)
 
 	var title := Label.new()
@@ -698,32 +735,53 @@ func _setup_pause_objectives_panel() -> void:
 	_pause_objectives_panel.add_child(subtitle)
 
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(620, 220)
+	scroll.custom_minimum_size = Vector2(0, 220)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+	scroll.process_mode = Node.PROCESS_MODE_ALWAYS
 	_pause_objectives_panel.add_child(scroll)
 
 	_pause_objectives_list = VBoxContainer.new()
 	_pause_objectives_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_pause_objectives_list.add_theme_constant_override("separation", 8)
+	_pause_objectives_list.process_mode = Node.PROCESS_MODE_ALWAYS
 	scroll.add_child(_pause_objectives_list)
+
+	for entry in StoryObjectives.get_entries():
+		var objective_id: String = entry.id
+		var row := Button.new()
+		row.name = "Objective_%s" % objective_id
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.custom_minimum_size = Vector2(0, 44)
+		row.add_theme_font_size_override("font_size", 20)
+		row.focus_mode = Control.FOCUS_NONE
+		row.mouse_filter = Control.MOUSE_FILTER_STOP
+		row.process_mode = Node.PROCESS_MODE_ALWAYS
+		row.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+		row.visible = false
+		row.pressed.connect(_on_objective_replay_selected.bind(objective_id))
+		_pause_objectives_list.add_child(row)
+		_pause_objective_checkboxes[objective_id] = row
+
+		var pending := Label.new()
+		pending.name = "Pending_%s" % objective_id
+		pending.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pending.custom_minimum_size = Vector2(0, 32)
+		pending.add_theme_font_size_override("font_size", 20)
+		pending.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65, 1))
+		pending.visible = true
+		pending.text = entry.title
+		_pause_objectives_list.add_child(pending)
+		_pause_objective_labels[objective_id] = pending
 
 	_pause_objectives_hint = Label.new()
 	_pause_objectives_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_pause_objectives_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_pause_objectives_hint.custom_minimum_size = Vector2(620, 0)
 	_pause_objectives_hint.add_theme_font_size_override("font_size", 18)
 	_pause_objectives_hint.add_theme_color_override("font_color", Color(0.78, 0.82, 0.9, 1))
 	_pause_objectives_panel.add_child(_pause_objectives_hint)
-
-	_pause_replay_button = Button.new()
-	_pause_replay_button.text = "Return to objective"
-	_pause_replay_button.custom_minimum_size = Vector2(280, 48)
-	_pause_replay_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_pause_replay_button.add_theme_font_size_override("font_size", 24)
-	_pause_replay_button.focus_mode = Control.FOCUS_NONE
-	_pause_replay_button.visible = false
-	_pause_replay_button.pressed.connect(_on_replay_objective_pressed)
-	_pause_objectives_panel.add_child(_pause_replay_button)
 
 	var resume_hint := Label.new()
 	resume_hint.text = "Press Resume or Pause to continue playing"
@@ -734,72 +792,55 @@ func _setup_pause_objectives_panel() -> void:
 
 
 func _refresh_pause_objectives_panel() -> void:
-	_clear_replay_objective_selection()
-	for child in _pause_objectives_list.get_children():
-		child.queue_free()
-	_pause_objective_checkboxes.clear()
-
+	_replay_objective_id = ""
 	var has_completed := false
 	for entry in StoryObjectives.get_entries():
 		var objective_id: String = entry.id
 		var completed := StoryObjectives.is_complete(objective_id)
 		if completed:
 			has_completed = true
-
-		var row := CheckBox.new()
-		row.text = entry.title
-		row.button_pressed = completed
-		row.disabled = not completed
-		row.add_theme_font_size_override("font_size", 20)
-		row.focus_mode = Control.FOCUS_NONE
-		row.set_meta("objective_id", objective_id)
-		row.toggled.connect(_on_objective_checkbox_toggled.bind(objective_id))
-		_pause_objectives_list.add_child(row)
-		_pause_objective_checkboxes[objective_id] = row
+		var button: Button = _pause_objective_checkboxes.get(objective_id)
+		var pending: Label = _pause_objective_labels.get(objective_id)
+		if button:
+			button.visible = completed
+			button.text = "Replay: %s" % entry.title
+		if pending:
+			pending.visible = not completed
+			pending.text = entry.title
 
 	if has_completed:
 		_pause_objectives_hint.text = (
-			"Uncheck a completed objective to replay it. "
+			"Click a completed objective to replay it. "
 			+ "Later objectives will reset too."
 		)
 	else:
 		_pause_objectives_hint.text = "No story objectives completed yet."
-	_pause_replay_button.visible = false
 
 
-func _on_objective_checkbox_toggled(pressed: bool, objective_id: String) -> void:
+func _hide_pause_ui() -> void:
+	pause_overlay.visible = false
+	if _pause_ui_root:
+		_pause_ui_root.visible = false
+	pause_overlay.z_index = 50
+
+
+func _on_objective_replay_selected(objective_id: String) -> void:
+	call_deferred("_start_objective_replay", objective_id)
+
+
+func _start_objective_replay(objective_id: String) -> void:
 	if not StoryObjectives.is_complete(objective_id):
 		return
-	if not pressed:
-		if not _replay_objective_id.is_empty() and _replay_objective_id != objective_id:
-			var previous: CheckBox = _pause_objective_checkboxes.get(_replay_objective_id)
-			if previous:
-				previous.set_pressed_no_signal(true)
-		_replay_objective_id = objective_id
-		_pause_replay_button.visible = true
-	else:
-		if _replay_objective_id == objective_id:
-			_replay_objective_id = ""
-			_pause_replay_button.visible = false
-
-
-func _on_replay_objective_pressed() -> void:
-	if _replay_objective_id.is_empty():
-		return
-	var replay_id := _replay_objective_id
-	_clear_replay_objective_selection()
-	_apply_unpause()
-	StoryObjectives.begin_replay(replay_id, get_tree())
+	_replay_objective_id = ""
+	get_tree().paused = false
+	_hide_pause_ui()
+	pause_button.text = "Pause"
+	get_viewport().gui_release_focus()
+	StoryObjectives.begin_replay(objective_id, get_tree())
 
 
 func _clear_replay_objective_selection() -> void:
 	_replay_objective_id = ""
-	if _pause_replay_button:
-		_pause_replay_button.visible = false
-	for objective_id in _pause_objective_checkboxes:
-		var checkbox: CheckBox = _pause_objective_checkboxes[objective_id]
-		if checkbox and StoryObjectives.is_complete(objective_id):
-			checkbox.set_pressed_no_signal(true)
 
 
 func _hide_pickup_banner_rows() -> void:
